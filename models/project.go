@@ -13,3 +13,8 @@ type Project struct {
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
+
+type ProjectRequest struct {
+	Title       string `json:"title"`
+	Description string `json:"description"`
+}

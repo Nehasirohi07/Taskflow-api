@@ -60,3 +60,16 @@ func ValidateLogin(login models.LoginRequest) error {
 
 	return nil
 }
+
+func ValidateProject(project models.ProjectRequest) error {
+
+	if strings.TrimSpace(project.Title) == "" {
+		return errors.New("Title is required")
+	}
+
+	if len(project.Title) < 3 {
+		return errors.New("Title must be at least 3 characters")
+	}
+
+	return nil
+}

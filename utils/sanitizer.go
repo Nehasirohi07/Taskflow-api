@@ -24,3 +24,11 @@ func SanitizeLogin(login models.LoginRequest) models.LoginRequest {
 
 	return login
 }
+
+func SanitizeProject(project models.ProjectRequest) models.ProjectRequest {
+
+	project.Title = strings.TrimSpace(project.Title)
+	project.Description = strings.TrimSpace(project.Description)
+
+	return project
+}
