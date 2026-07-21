@@ -15,3 +15,12 @@ func SanitizeRegister(register models.RegisterRequest) models.RegisterRequest {
 	return register
 
 }
+
+func SanitizeLogin(login models.LoginRequest) models.LoginRequest {
+
+	login.Email = strings.TrimSpace(login.Email)
+	login.Email = strings.ToLower(login.Email)
+	login.Password = strings.TrimSpace(login.Password)
+
+	return login
+}

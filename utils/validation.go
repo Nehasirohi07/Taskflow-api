@@ -38,3 +38,25 @@ func ValidateRegister(register models.RegisterRequest) error {
 	return nil
 
 }
+
+func ValidateLogin(login models.LoginRequest) error {
+
+	if strings.TrimSpace(login.Email) == "" {
+		return errors.New("Email is required")
+	}
+
+	_, err := mail.ParseAddress(login.Email)
+	if err != nil {
+		return errors.New("Invalid email format")
+	}
+
+	if strings.TrimSpace(login.Password) == "" {
+		return errors.New("Password is required")
+	}
+
+	if len(login.Password) < 6 {
+		return errors.New("password must be atleast 6 characters")
+	}
+
+	return nil
+}
