@@ -22,7 +22,7 @@ func InitDB() {
 
 	dsn := fmt.Sprintf(
 
-		"%s:%s@tcp(%s:%s)/%s?ParseTime=true",
+		"%s:%s@tcp(%s:%s)/%s?parseTime=true&charset=utf8mb4&loc=Local",
 
 		dbUser,
 		dbPassword,
@@ -30,6 +30,12 @@ func InitDB() {
 		dbPort,
 		dbName,
 	)
+	fmt.Println("DB User :", dbUser)
+	fmt.Println("DB Password :", dbPassword)
+	fmt.Println("DB Host :", dbHost)
+	fmt.Println("DB Port :", dbPort)
+	fmt.Println("DB Name :", dbName)
+	fmt.Println("DSN :", dsn)
 
 	db, err := sql.Open("mysql", dsn)
 
@@ -48,6 +54,7 @@ func InitDB() {
 			return
 		}
 		fmt.Printf("Database not ready... Retry %d/10\n", i)
+		fmt.Println("Error:", err)
 
 		time.Sleep(3 * time.Second)
 
