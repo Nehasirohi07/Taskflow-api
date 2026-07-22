@@ -17,4 +17,5 @@ type Project struct {
 type ProjectRequest struct {
 	Title       string `json:"title"`
 	Description string `json:"description"`
+	Status      string `json:"status"`
 }
