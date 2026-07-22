@@ -73,3 +73,26 @@ func ValidateProject(project models.ProjectRequest) error {
 
 	return nil
 }
+
+func ValidateTask(task models.TaskRequest) error {
+
+	if task.ProjectID <= 0 {
+		return errors.New("Invalid project ID")
+	}
+
+	if strings.TrimSpace(task.Title) == "" {
+		return errors.New("Title is required")
+	}
+
+	if len(task.Title) < 3 {
+		return errors.New("Title must be atleast 3 characters")
+	}
+
+	if task.Status != "pending" &&
+		task.Status != "in_progress" &&
+		task.Status != "completed" {
+		return errors.New("Invalid status")
+	}
+
+	return nil
+}
