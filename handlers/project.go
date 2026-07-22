@@ -261,3 +261,71 @@ func UpdateProject(w http.ResponseWriter, r *http.Request) {
 	)
 
 }
+
+func DeleteProject(w http.ResponseWriter, r *http.Request) {
+
+	userID, ok := r.Context().Value("userID").(int)
+
+	if !ok {
+		utils.SendError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	vars := mux.Vars(r)
+
+	idStr := vars["id"]
+
+	id, err := strconv.Atoi(idStr)
+
+	if err != nil {
+		utils.SendError(w, http.StatusBadRequest, "Invalid project ID")
+		return
+	}
+
+	var projectID int
+
+	err = database.DB.QueryRow(
+		`SELECT id
+		FROM projects
+		WHERE id = ? AND user_id = ?`,
+		id,
+		userID,
+	).Scan(&projectID)
+
+	if err != nil {
+		utils.SendError(w, http.StatusNotFound, "Project not found")
+		return
+	}
+
+	result, err := database.DB.Exec(
+		`DELETE FROM projects
+		WHERE id = ? AND user_id = ?`,
+		id,
+		userID,
+	)
+
+	if err != nil {
+		utils.SendError(w, http.StatusInternalServerError, "Failed to delete project")
+		return
+	}
+	affectedRows, err := result.RowsAffected()
+
+	if err != nil {
+		utils.SendError(w, http.StatusInternalServerError, "database error")
+		return
+	}
+
+	if affectedRows == 0 {
+		utils.SendError(w, http.StatusNotFound, "No record affected")
+		return
+	}
+
+	utils.SendSuccess(
+		w,
+		http.StatusOK,
+		"project deleted successfully",
+		map[string]interface{}{
+			"deleted_rows": affectedRows,
+		},
+	)
+}
