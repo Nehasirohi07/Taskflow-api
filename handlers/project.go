@@ -176,3 +176,88 @@ func GetProjectByID(w http.ResponseWriter, r *http.Request) {
 	)
 
 }
+
+func UpdateProject(w http.ResponseWriter, r *http.Request) {
+
+	var project models.ProjectRequest
+
+	err := json.NewDecoder(r.Body).Decode(&project)
+
+	if err != nil {
+		utils.SendError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	project = utils.SanitizeProject(project)
+
+	err = utils.ValidateProject(project)
+
+	if err != nil {
+		utils.SendError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	userID, ok := r.Context().Value("userID").(int)
+
+	if !ok {
+
+		utils.SendError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	vars := mux.Vars(r)
+
+	idStr := vars["id"]
+
+	id, err := strconv.Atoi(idStr)
+
+	if err != nil {
+		utils.SendError(w, http.StatusBadRequest, "Invalid project ID")
+		return
+	}
+
+	var projectID int
+
+	err = database.DB.QueryRow(
+		`SELECT id
+		FROM projects
+		WHERE id = ? AND user_id = ?`,
+		id,
+		userID,
+	).Scan(&projectID)
+
+	if err == sql.ErrNoRows {
+		utils.SendError(w, http.StatusNotFound, "Project not found")
+		return
+	}
+
+	if err != nil {
+		utils.SendError(w, http.StatusInternalServerError, "Database error")
+		return
+	}
+
+	_, err = database.DB.Exec(
+		`UPDATE projects 
+		SET 
+		title = ?,
+		description = ?,
+		status = ?,
+		updated_at = ? 
+		WHERE id = ? AND user_id = ?`,
+		id,
+		userID,
+	)
+
+	if err != nil {
+		utils.SendError(w, http.StatusInternalServerError, "database error")
+		return
+	}
+
+	utils.SendSuccess(
+		w,
+		http.StatusOK,
+		"project updated successfully",
+		nil,
+	)
+
+}
