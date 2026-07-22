@@ -1,11 +1,15 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"taskflow-api/database"
 	"taskflow-api/models"
 	"taskflow-api/utils"
+
+	"github.com/gorilla/mux"
 )
 
 func CreateProject(w http.ResponseWriter, r *http.Request) {
@@ -68,7 +72,7 @@ func GetProjects(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rows, err := database.DB.Query(
-		`SELECT * FROM Project
+		`SELECT * FROM projects
 		 WHERE user_id = ?`,
 		userID,
 	)
@@ -113,6 +117,62 @@ func GetProjects(w http.ResponseWriter, r *http.Request) {
 		http.StatusOK,
 		"projects fetched successfully",
 		projects,
+	)
+
+}
+
+func GetProjectByID(w http.ResponseWriter, r *http.Request) {
+
+	userID, ok := r.Context().Value("userID").(int)
+
+	if !ok {
+		utils.SendError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	vars := mux.Vars(r)
+	idStr := vars["id"]
+
+	id, err := strconv.Atoi(idStr)
+
+	if err != nil {
+		utils.SendError(w, http.StatusBadRequest, "Invalid project ID")
+		return
+	}
+
+	var project models.Project
+
+	err = database.DB.QueryRow(
+		`SELECT id, user_id, title, description, status, created_at
+		 FROM projects
+		 WHERE id = ? AND user_id = ?`,
+		id,
+		userID,
+	).Scan(
+
+		&project.ID,
+		&project.UserID,
+		&project.Title,
+		&project.Description,
+		&project.Status,
+		&project.CreatedAt,
+	)
+
+	if err == sql.ErrNoRows {
+		utils.SendError(w, http.StatusNotFound, "Project not found")
+		return
+	}
+
+	if err != nil {
+		utils.SendError(w, http.StatusInternalServerError, "Database error")
+		return
+	}
+
+	utils.SendSuccess(
+		w,
+		http.StatusOK,
+		"project fetched successfully",
+		project,
 	)
 
 }
