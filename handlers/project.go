@@ -57,3 +57,62 @@ func CreateProject(w http.ResponseWriter, r *http.Request) {
 	)
 
 }
+
+func GetProjects(w http.ResponseWriter, r *http.Request) {
+
+	userID, ok := r.Context().Value("userID").(int)
+
+	if !ok {
+		utils.SendError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	rows, err := database.DB.Query(
+		`SELECT * FROM Project
+		 WHERE user_id = ?`,
+		userID,
+	)
+
+	if err != nil {
+		utils.SendError(w, http.StatusInternalServerError, "Database error")
+		return
+	}
+
+	defer rows.Close()
+
+	var projects []models.Project
+
+	for rows.Next() {
+
+		var project models.Project
+
+		err := rows.Scan(
+			&project.ID,
+			&project.UserID,
+			&project.Title,
+			&project.Description,
+			&project.Status,
+			&project.CreatedAt,
+		)
+
+		if err != nil {
+			utils.SendError(w, http.StatusInternalServerError, "Failed to read project")
+			return
+		}
+
+		projects = append(projects, project)
+	}
+
+	if err := rows.Err(); err != nil {
+		utils.SendError(w, http.StatusInternalServerError, "Database error")
+		return
+	}
+
+	utils.SendSuccess(
+		w,
+		http.StatusOK,
+		"projects fetched successfully",
+		projects,
+	)
+
+}
