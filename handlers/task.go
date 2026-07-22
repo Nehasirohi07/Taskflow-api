@@ -169,7 +169,7 @@ func GetTasks(w http.ResponseWriter, r *http.Request) {
 			&taskresponse.Description,
 			&taskresponse.Status,
 			&taskresponse.DueDate,
-			&taskresponse.CreatedAT,
+			&taskresponse.CreatedAt,
 		)
 
 		if err != nil {
@@ -191,6 +191,73 @@ func GetTasks(w http.ResponseWriter, r *http.Request) {
 		http.StatusOK,
 		"Tasks fetched successfully",
 		tasks,
+	)
+
+}
+
+func GetTaskByID(w http.ResponseWriter, r *http.Request) {
+
+	userID, ok := r.Context().Value("userID").(int)
+
+	if !ok {
+		utils.SendError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	vars := mux.Vars(r)
+
+	idStr := vars["id"]
+
+	id, err := strconv.Atoi(idStr)
+
+	if err != nil {
+		utils.SendError(w, http.StatusBadRequest, "Invalid task ID")
+		return
+	}
+
+	var task models.TaskResponse
+
+	err = database.DB.QueryRow(
+		`SELECT
+		 	t.id,
+	     	t.project_id,
+		 	t.title,
+		 	t.description,
+		 	t.status,
+			t.due_date,
+			t.created_at
+		 FROM tasks t
+		 JOIN projects p
+		 	ON t.project_id = p.id
+		WHERE t.id = ? 
+		AND p.user_id = ?`,
+		id,
+		userID,
+	).Scan(
+		&task.ID,
+		&task.ProjectID,
+		&task.Title,
+		&task.Description,
+		&task.Status,
+		&task.DueDate,
+		&task.CreatedAt,
+	)
+
+	if err == sql.ErrNoRows {
+		utils.SendError(w, http.StatusNotFound, "Task not found")
+		return
+	}
+
+	if err != nil {
+		utils.SendError(w, http.StatusInternalServerError, "Database error")
+		return
+	}
+
+	utils.SendSuccess(
+		w,
+		http.StatusOK,
+		"Task fetched successfully",
+		task,
 	)
 
 }
