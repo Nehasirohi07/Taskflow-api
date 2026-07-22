@@ -93,3 +93,104 @@ func CreateTask(w http.ResponseWriter, r *http.Request) {
 		task,
 	)
 }
+
+func GetTasks(w http.ResponseWriter, r *http.Request) {
+
+	userID, ok := r.Context().Value("userID").(int)
+
+	if !ok {
+		utils.SendError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	vars := mux.Vars(r)
+
+	idStr := vars["id"]
+
+	id, err := strconv.Atoi(idStr)
+
+	if err != nil {
+		utils.SendError(w, http.StatusBadRequest, "Invalid project ID")
+		return
+	}
+
+	var projectID int
+
+	err = database.DB.QueryRow(
+		`SELECT id
+		FROM projects
+		WHERE id = ?
+		AND user_id = ?`,
+		id,
+		userID,
+	).Scan(&projectID)
+
+	if err == sql.ErrNoRows {
+		utils.SendError(w, http.StatusNotFound, "Project not found")
+		return
+	}
+	if err != nil {
+		utils.SendError(w, http.StatusInternalServerError, "Database error")
+		return
+	}
+
+	rows, err := database.DB.Query(
+		`SELECT 
+		id,
+		project_id,
+		title,
+		description,
+		status,
+		due_date,
+		created_at
+		FROM tasks
+		WHERE project_id = ?
+		ORDER BY created_at DESC`,
+		projectID,
+	)
+
+	if err != nil {
+		utils.SendError(w, http.StatusInternalServerError, "Database error")
+		return
+	}
+
+	defer rows.Close()
+
+	var tasks []models.TaskResponse
+
+	for rows.Next() {
+
+		var taskresponse models.TaskResponse
+
+		err := rows.Scan(
+			&taskresponse.ID,
+			&taskresponse.ProjectID,
+			&taskresponse.Title,
+			&taskresponse.Description,
+			&taskresponse.Status,
+			&taskresponse.DueDate,
+			&taskresponse.CreatedAT,
+		)
+
+		if err != nil {
+			utils.SendError(w, http.StatusInternalServerError, "Failed to read tasks")
+			return
+		}
+
+		tasks = append(tasks, taskresponse)
+
+	}
+
+	if err := rows.Err(); err != nil {
+		utils.SendError(w, http.StatusInternalServerError, "Database error")
+		return
+	}
+
+	utils.SendSuccess(
+		w,
+		http.StatusOK,
+		"Tasks fetched successfully",
+		tasks,
+	)
+
+}

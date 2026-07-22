@@ -31,6 +31,6 @@ type TaskResponse struct {
 	Description string     `json:"description"`
 	Status      string     `json:"status"`
 	DueDate     *time.Time `json:"due_date"`
-	CreatedAT   time.Time  `json:"created_at"`
-	UpdatedAT   time.Time  `json:"updated_at"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
 }
