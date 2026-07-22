@@ -1,6 +1,95 @@
 package handlers
 
-import(
+import (
+	"database/sql"
+	"encoding/json"
+	"net/http"
+	"strconv"
+	"taskflow-api/database"
+	"taskflow-api/models"
+	"taskflow-api/utils"
 
-	
+	"github.com/gorilla/mux"
 )
+
+func CreateTask(w http.ResponseWriter, r *http.Request) {
+
+	var task models.TaskRequest
+
+	err := json.NewDecoder(r.Body).Decode(&task)
+
+	if err != nil {
+		utils.SendError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	task = utils.SanitizeTask(task)
+
+	err = utils.ValidateTask(task)
+
+	if err != nil {
+		utils.SendError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	userID, ok := r.Context().Value("userID").(int)
+
+	if !ok {
+		utils.SendError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	vars := mux.Vars(r)
+
+	idStr := vars["id"]
+
+	id, err := strconv.Atoi(idStr)
+
+	if err != nil {
+		utils.SendError(w, http.StatusBadRequest, "Invalid project ID")
+		return
+	}
+
+	var projectID int
+
+	err = database.DB.QueryRow(
+		`SELECT id
+		FROM projects
+		WHERE ID = ?
+		AND user_id = ?`,
+		id,
+		userID,
+	).Scan(&projectID)
+
+	if err == sql.ErrNoRows {
+		utils.SendError(w, http.StatusNotFound, "Project not found")
+		return
+	}
+
+	if err != nil {
+		utils.SendError(w, http.StatusInternalServerError, "Database error")
+		return
+	}
+	_, err = database.DB.Exec(
+		`INSERT INTO tasks
+		(project_id, title, description, status, due_date)
+		VALUES (? , ? , ? , ?, ?)`,
+		task.ProjectID,
+		task.Title,
+		task.Description,
+		task.Status,
+		task.DueDate,
+	)
+
+	if err != nil {
+		utils.SendError(w, http.StatusInternalServerError, "Database error")
+		return
+	}
+
+	utils.SendSuccess(
+		w,
+		http.StatusCreated,
+		"Task created successfully",
+		task,
+	)
+}
