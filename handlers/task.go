@@ -261,3 +261,107 @@ func GetTaskByID(w http.ResponseWriter, r *http.Request) {
 	)
 
 }
+
+func UpdateTask(w http.ResponseWriter, r *http.Request) {
+
+	var taskrequest models.TaskRequest
+
+	err := json.NewDecoder(r.Body).Decode(&taskrequest)
+
+	if err != nil {
+		utils.SendError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	taskrequest = utils.SanitizeTask(taskrequest)
+
+	err = utils.ValidateTask(taskrequest)
+
+	if err != nil {
+		utils.SendError(w, http.StatusBadRequest, err.Error())
+		return
+
+	}
+
+	userID, ok := r.Context().Value("userID").(int)
+
+	if !ok {
+		utils.SendError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	vars := mux.Vars(r)
+
+	idStr := vars["id"]
+
+	id, err := strconv.Atoi(idStr)
+
+	if err != nil {
+		utils.SendError(w, http.StatusBadRequest, "Invalid task ID")
+		return
+	}
+
+	var taskID int
+
+	err = database.DB.QueryRow(
+		`SELECT t.id
+		FROM tasks t
+		JOIN projects p
+		ON t.project_id = p.id
+		WHERE t.id = ?
+		AND p.user_id = ?`,
+		id,
+		userID,
+	).Scan(&taskID)
+
+	if err == sql.ErrNoRows {
+		utils.SendError(w, http.StatusNotFound, "Task not found")
+		return
+	}
+
+	if err != nil {
+		utils.SendError(w, http.StatusInternalServerError, "Database error")
+		return
+	}
+
+	result, err := database.DB.Exec(
+		`UPDATE tasks
+		SET
+		title = ?,
+		description = ?,
+		status = ?,
+		due_date = ?,
+		updated_at = NOW()
+		WHERE id = ?`,
+		taskrequest.Title,
+		taskrequest.Description,
+		taskrequest.Status,
+		taskrequest.DueDate,
+		id,
+	)
+
+	if err != nil {
+		utils.SendError(w, http.StatusInternalServerError, "Failed to update task")
+		return
+	}
+
+	affectedRows, err := result.RowsAffected()
+
+	if err != nil {
+		utils.SendError(w, http.StatusInternalServerError, "Database error")
+		return
+	}
+
+	if affectedRows == 0 {
+		utils.SendError(w, http.StatusNotFound, "no record affected")
+		return
+	}
+
+	utils.SendSuccess(
+		w,
+		http.StatusOK,
+		"Task updated successfully",
+		nil,
+	)
+
+}
