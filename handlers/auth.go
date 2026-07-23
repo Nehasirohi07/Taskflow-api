@@ -10,17 +10,13 @@ import (
 )
 
 // Register godoc
-// @Summary Register a new user
-// @Description Create a new user account
+// @Summary Register
 // @Tags Authentication
 // @Accept json
 // @Produce json
-// @Param user body models.RegisterRequest true "Register Request"
-// @Success 201 {object} utils.Response
-// @Failure 400 {object} utils.Response
-// @Failure 500 {object} utils.Response
+// @Param user body models.RegisterRequest true "User"
+// @Success 200 {string} string
 // @Router /register [post]
-
 func Register(w http.ResponseWriter, r *http.Request) {
 
 	var register models.RegisterRequest
@@ -99,7 +95,6 @@ func Register(w http.ResponseWriter, r *http.Request) {
 // @Failure 401 {object} utils.Response
 // @Failure 500 {object} utils.Response
 // @Router /login [post]
-
 func Login(w http.ResponseWriter, r *http.Request) {
 
 	var login models.LoginRequest

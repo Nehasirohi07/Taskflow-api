@@ -22,7 +22,6 @@ import (
 // @Failure 403 {object} utils.Response
 // @Failure 500 {object} utils.Response
 // @Router /admin/dashboard [get]
-
 func GetAdminDashboard(w http.ResponseWriter, r *http.Request) {
 
 	var dashboard models.AdminDashboard
@@ -77,7 +76,6 @@ func GetAdminDashboard(w http.ResponseWriter, r *http.Request) {
 // @Failure 403 {object} utils.Response
 // @Failure 500 {object} utils.Response
 // @Router /admin/users [get]
-
 func GetAllUsers(w http.ResponseWriter, r *http.Request) {
 
 	rows, err := database.DB.Query(
@@ -148,7 +146,6 @@ func GetAllUsers(w http.ResponseWriter, r *http.Request) {
 // @Failure 404 {object} utils.Response
 // @Failure 500 {object} utils.Response
 // @Router /admin/users/{id} [delete]
-
 func DeleteUser(w http.ResponseWriter, r *http.Request) {
 
 	adminID, ok := r.Context().Value("userID").(int)

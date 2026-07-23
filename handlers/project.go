@@ -3,6 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"taskflow-api/database"
@@ -12,7 +13,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// 	CreateProject godoc
+//	CreateProject godoc
+//
 // @Summary Create a new project
 // @Description Create a new project for the authenticated user
 // @Tags Projects
@@ -25,7 +27,6 @@ import (
 // @Failure 401 {object} utils.Response
 // @Failure 500 {object} utils.Response
 // @Router /projects [post]
-
 func CreateProject(w http.ResponseWriter, r *http.Request) {
 
 	var project models.ProjectRequest
@@ -63,10 +64,10 @@ func CreateProject(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err != nil {
-		utils.SendError(w, http.StatusInternalServerError, "Failed to create project")
+		fmt.Println("Create Project Error:", err)
+		utils.SendError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
-
 	utils.SendSuccess(
 		w,
 		http.StatusCreated,
@@ -86,7 +87,6 @@ func CreateProject(w http.ResponseWriter, r *http.Request) {
 // @Failure 401 {object} utils.Response
 // @Failure 500 {object} utils.Response
 // @Router /projects [get]
-
 func GetProjects(w http.ResponseWriter, r *http.Request) {
 
 	userID, ok := r.Context().Value("userID").(int)
@@ -97,8 +97,15 @@ func GetProjects(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rows, err := database.DB.Query(
-		`SELECT * FROM projects
-		 WHERE user_id = ?`,
+		`SELECT
+        id,
+        user_id,
+        title,
+        description,
+        status,
+        created_at
+    FROM projects
+    WHERE user_id = ?`,
 		userID,
 	)
 
@@ -125,7 +132,8 @@ func GetProjects(w http.ResponseWriter, r *http.Request) {
 		)
 
 		if err != nil {
-			utils.SendError(w, http.StatusInternalServerError, "Failed to read project")
+			fmt.Println("GetProjects Error:", err)
+			utils.SendError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 
@@ -159,7 +167,6 @@ func GetProjects(w http.ResponseWriter, r *http.Request) {
 // @Failure 404 {object} utils.Response
 // @Failure 500 {object} utils.Response
 // @Router /projects/{id} [get]
-
 func GetProjectByID(w http.ResponseWriter, r *http.Request) {
 
 	userID, ok := r.Context().Value("userID").(int)
@@ -231,7 +238,6 @@ func GetProjectByID(w http.ResponseWriter, r *http.Request) {
 // @Failure 404 {object} utils.Response
 // @Failure 500 {object} utils.Response
 // @Router /projects/{id} [put]
-
 func UpdateProject(w http.ResponseWriter, r *http.Request) {
 
 	var project models.ProjectRequest
@@ -264,6 +270,8 @@ func UpdateProject(w http.ResponseWriter, r *http.Request) {
 
 	idStr := vars["id"]
 
+	fmt.Println("Task ID:", idStr)
+
 	id, err := strconv.Atoi(idStr)
 
 	if err != nil {
@@ -293,12 +301,15 @@ func UpdateProject(w http.ResponseWriter, r *http.Request) {
 
 	_, err = database.DB.Exec(
 		`UPDATE projects 
-		SET 
-		title = ?,
-		description = ?,
-		status = ?,
-		updated_at = ? 
-		WHERE id = ? AND user_id = ?`,
+	SET 
+	title = ?,
+	description = ?,
+	status = ?,
+	updated_at = NOW()
+	WHERE id = ? AND user_id = ?`,
+		project.Title,
+		project.Description,
+		project.Status,
 		id,
 		userID,
 	)
@@ -330,7 +341,6 @@ func UpdateProject(w http.ResponseWriter, r *http.Request) {
 // @Failure 404 {object} utils.Response
 // @Failure 500 {object} utils.Response
 // @Router /projects/{id} [delete]
-
 func DeleteProject(w http.ResponseWriter, r *http.Request) {
 
 	userID, ok := r.Context().Value("userID").(int)

@@ -27,7 +27,6 @@ import (
 // @Failure 404 {object} utils.Response
 // @Failure 500 {object} utils.Response
 // @Router /projects/{id}/tasks [post]
-
 func CreateTask(w http.ResponseWriter, r *http.Request) {
 
 	var task models.TaskRequest
@@ -122,7 +121,6 @@ func CreateTask(w http.ResponseWriter, r *http.Request) {
 // @Failure 404 {object} utils.Response
 // @Failure 500 {object} utils.Response
 // @Router /projects/{id}/tasks [get]
-
 func GetTasks(w http.ResponseWriter, r *http.Request) {
 
 	userID, ok := r.Context().Value("userID").(int)
@@ -237,7 +235,6 @@ func GetTasks(w http.ResponseWriter, r *http.Request) {
 // @Failure 404 {object} utils.Response
 // @Failure 500 {object} utils.Response
 // @Router /tasks/{id} [get]
-
 func GetTaskByID(w http.ResponseWriter, r *http.Request) {
 
 	userID, ok := r.Context().Value("userID").(int)
@@ -320,7 +317,6 @@ func GetTaskByID(w http.ResponseWriter, r *http.Request) {
 // @Failure 404 {object} utils.Response
 // @Failure 500 {object} utils.Response
 // @Router /tasks/{id} [put]
-
 func UpdateTask(w http.ResponseWriter, r *http.Request) {
 
 	var taskrequest models.TaskRequest
@@ -438,7 +434,6 @@ func UpdateTask(w http.ResponseWriter, r *http.Request) {
 // @Failure 404 {object} utils.Response
 // @Failure 500 {object} utils.Response
 // @Router /tasks/{id} [delete]
-
 func DeleteTask(w http.ResponseWriter, r *http.Request) {
 
 	userID, ok := r.Context().Value("userID").(int)

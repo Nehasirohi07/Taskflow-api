@@ -16,7 +16,6 @@ import (
 // @Success 200 {object} utils.Response
 // @Failure 401 {object} utils.Response
 // @Failure 500 {object} utils.Response
-
 func GetDashboard(w http.ResponseWriter, r *http.Request) {
 
 	userID, ok := r.Context().Value("userID").(int)
