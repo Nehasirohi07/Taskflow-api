@@ -12,6 +12,22 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// CreateTask godoc
+// @Summary Create a new task
+// @Description Create a task under a specific project
+// @Tags Tasks
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "Project ID"
+// @Param task body models.TaskRequest true "Task Details"
+// @Success 201 {object} utils.Response
+// @Failure 400 {object} utils.Response
+// @Failure 401 {object} utils.Response
+// @Failure 404 {object} utils.Response
+// @Failure 500 {object} utils.Response
+// @Router /projects/{id}/tasks [post]
+
 func CreateTask(w http.ResponseWriter, r *http.Request) {
 
 	var task models.TaskRequest
@@ -93,6 +109,19 @@ func CreateTask(w http.ResponseWriter, r *http.Request) {
 		task,
 	)
 }
+
+// GetTasks godoc
+// @Summary Get all tasks
+// @Description Get all tasks for a specific project
+// @Tags Tasks
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "Project ID"
+// @Success 200 {object} utils.Response
+// @Failure 401 {object} utils.Response
+// @Failure 404 {object} utils.Response
+// @Failure 500 {object} utils.Response
+// @Router /projects/{id}/tasks [get]
 
 func GetTasks(w http.ResponseWriter, r *http.Request) {
 
@@ -195,6 +224,20 @@ func GetTasks(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// GetTaskByID godoc
+// @Summary Get task by ID
+// @Description Get a single task
+// @Tags Tasks
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "Task ID"
+// @Success 200 {object} utils.Response
+// @Failure 400 {object} utils.Response
+// @Failure 401 {object} utils.Response
+// @Failure 404 {object} utils.Response
+// @Failure 500 {object} utils.Response
+// @Router /tasks/{id} [get]
+
 func GetTaskByID(w http.ResponseWriter, r *http.Request) {
 
 	userID, ok := r.Context().Value("userID").(int)
@@ -261,6 +304,22 @@ func GetTaskByID(w http.ResponseWriter, r *http.Request) {
 	)
 
 }
+
+// UpdateTask godoc
+// @Summary Update task
+// @Description Update an existing task
+// @Tags Tasks
+// @Accept json
+// @Produce json
+// @security BearerAuth
+// @Param id path int true "Task ID"
+// @Param task body models.TaskRequest true "Update Task"
+// @Success 200 {object} utils.Response
+// @Failure 400 {object} utils.Response
+// @Failure 401 {object} utils.Response
+// @Failure 404 {object} utils.Response
+// @Failure 500 {object} utils.Response
+// @Router /tasks/{id} [put]
 
 func UpdateTask(w http.ResponseWriter, r *http.Request) {
 
@@ -365,6 +424,20 @@ func UpdateTask(w http.ResponseWriter, r *http.Request) {
 	)
 
 }
+
+// DeleteTask godoc
+// @Summary Delete task
+// @Description Delete a task by ID
+// @Tags Tasks
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "Task ID"
+// @Success 200 {object} utils.Response
+// @Failure 400 {object} utils.Response
+// @Failure 401 {object} utils.Response
+// @Failure 404 {object} utils.Response
+// @Failure 500 {object} utils.Response
+// @Router /tasks/{id} [delete]
 
 func DeleteTask(w http.ResponseWriter, r *http.Request) {
 
