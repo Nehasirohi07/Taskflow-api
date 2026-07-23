@@ -1,10 +1,14 @@
 package handlers
 
 import (
+	"database/sql"
 	"net/http"
+	"strconv"
 	"taskflow-api/database"
 	"taskflow-api/models"
 	"taskflow-api/utils"
+
+	"github.com/gorilla/mux"
 )
 
 func GetAdminDashboard(w http.ResponseWriter, r *http.Request) {
@@ -102,6 +106,82 @@ func GetAllUsers(w http.ResponseWriter, r *http.Request) {
 		http.StatusOK,
 		"Users fetched successfully",
 		users,
+	)
+
+}
+
+func DeleteUser(w http.ResponseWriter, r *http.Request) {
+
+	adminID, ok := r.Context().Value("userID").(int)
+
+	if !ok {
+		utils.SendError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	vars := mux.Vars(r)
+
+	idStr := vars["id"]
+
+	id, err := strconv.Atoi(idStr)
+
+	if err != nil {
+		utils.SendError(w, http.StatusNotFound, "user ID not found")
+		return
+	}
+
+	if id == adminID {
+		utils.SendError(w, http.StatusBadRequest, "you cannot delete your own account")
+		return
+	}
+
+	var usersID int
+
+	err = database.DB.QueryRow(
+		`SELECT id
+		FROM users
+		WHERE id = ?`,
+		id,
+	).Scan(&usersID)
+
+	if err == sql.ErrNoRows {
+		utils.SendError(w, http.StatusNotFound, "User not found")
+		return
+	}
+
+	if err != nil {
+		utils.SendError(w, http.StatusInternalServerError, "Database error")
+		return
+	}
+
+	result, err := database.DB.Exec(
+		`DELETE FROM users
+		WHERE id = ?`,
+		id,
+	)
+
+	if err != nil {
+		utils.SendError(w, http.StatusInternalServerError, "Failed to delete user")
+		return
+	}
+
+	affectedRows, err := result.RowsAffected()
+
+	if err != nil {
+		utils.SendError(w, http.StatusInternalServerError, "Database error")
+		return
+	}
+
+	if affectedRows == 0 {
+		utils.SendError(w, http.StatusNotFound, "no record affected")
+		return
+	}
+
+	utils.SendSuccess(
+		w,
+		http.StatusOK,
+		"User deleted successfully",
+		nil,
 	)
 
 }
