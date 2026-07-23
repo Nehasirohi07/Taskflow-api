@@ -21,6 +21,7 @@ func RegisterRoutes() *mux.Router {
 
 	protected := router.PathPrefix("/").Subrouter()
 	protected.Use(middleware.Auth)
+	protected.HandleFunc("/dashboard", handlers.GetDashboard).Methods("GET")
 
 	protected.HandleFunc("/projects", handlers.CreateProject).Methods("POST")
 	protected.HandleFunc("/projects", handlers.GetProjects).Methods("GET")
