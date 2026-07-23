@@ -12,6 +12,20 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// 	CreateProject godoc
+// @Summary Create a new project
+// @Description Create a new project for the authenticated user
+// @Tags Projects
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param project body models.ProjectRequest true "Project Details"
+// @Success 201 {object} utils.Response
+// @Failure 400 {object} utils.Response
+// @Failure 401 {object} utils.Response
+// @Failure 500 {object} utils.Response
+// @Router /projects [post]
+
 func CreateProject(w http.ResponseWriter, r *http.Request) {
 
 	var project models.ProjectRequest
@@ -61,6 +75,17 @@ func CreateProject(w http.ResponseWriter, r *http.Request) {
 	)
 
 }
+
+// GetProjects godoc
+// @Summary Get all projects
+// @Description Get all projects of the authentication user
+// @Tags Projects
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} utils.Response
+// @Failure 401 {object} utils.Response
+// @Failure 500 {object} utils.Response
+// @Router /projects [get]
 
 func GetProjects(w http.ResponseWriter, r *http.Request) {
 
@@ -121,6 +146,20 @@ func GetProjects(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// GetProjectByID godoc
+// @Summary Get project by ID
+// @Description Get a single project by ID
+// @Tags Projects
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "Project ID"
+// @Success 200 {object} utils.Response
+// @Failure 400 {object} utils.Response
+// @Failure 401 {object} utils.Response
+// @Failure 404 {object} utils.Response
+// @Failure 500 {object} utils.Response
+// @Router /projects/{id} [get]
+
 func GetProjectByID(w http.ResponseWriter, r *http.Request) {
 
 	userID, ok := r.Context().Value("userID").(int)
@@ -176,6 +215,22 @@ func GetProjectByID(w http.ResponseWriter, r *http.Request) {
 	)
 
 }
+
+// UpdateProject godoc
+// @Summary Update project
+// @Description Update an existing project
+// @Tags Projects
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "Project ID"
+// @Param project body models.ProjectRequest true "Update Project"
+// @Success 200 {object} utils.Response
+// @Failure 400 {object} utils.Response
+// @Failure 401 {object} utils.Response
+// @Failure 404 {object} utils.Response
+// @Failure 500 {object} utils.Response
+// @Router /projects/{id} [put]
 
 func UpdateProject(w http.ResponseWriter, r *http.Request) {
 
@@ -261,6 +316,20 @@ func UpdateProject(w http.ResponseWriter, r *http.Request) {
 	)
 
 }
+
+// DeleteProject godoc
+// @Summary Delete project
+// @Description Delete a project by ID
+// @Tags Projects
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "Project ID"
+// @Success 200 {object} utils.Response
+// @Failure 400 {object} utils.Response
+// @Failure 401 {object} utils.Response
+// @Failure 404 {object} utils.Response
+// @Failure 500 {object} utils.Response
+// @Router /projects/{id} [delete]
 
 func DeleteProject(w http.ResponseWriter, r *http.Request) {
 

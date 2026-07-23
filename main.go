@@ -6,6 +6,10 @@ package main
 // @host localhost:5051
 // @BasePath /
 
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+
 import (
 	"fmt"
 	"net/http"
