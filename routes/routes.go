@@ -25,7 +25,7 @@ func RegisterRoutes() *mux.Router {
 
 	protected.HandleFunc("/projects", handlers.CreateProject).Methods("POST")
 	protected.HandleFunc("/projects", handlers.GetProjects).Methods("GET")
-	protected.HandleFunc("/projects", handlers.GetProjectByID).Methods("GET")
+	protected.HandleFunc("/projects/{id}", handlers.GetProjectByID).Methods("GET")
 	protected.HandleFunc("/projects/{id}", handlers.UpdateProject).Methods("PUT")
 	protected.HandleFunc("/projects/{id}", handlers.DeleteProject).Methods("DELETE")
 
@@ -34,6 +34,13 @@ func RegisterRoutes() *mux.Router {
 	protected.HandleFunc("/tasks/{id}", handlers.GetTaskByID).Methods("GET")
 	protected.HandleFunc("/tasks/{id}", handlers.UpdateTask).Methods("PUT")
 	protected.HandleFunc("/tasks/{id}", handlers.DeleteTask).Methods("DELETE")
+
+	admin := protected.PathPrefix("/admin").Subrouter()
+	admin.Use(middleware.AdminOnly)
+
+	admin.HandleFunc("/dashboard", handlers.GetAdminDashboard).Methods("GET")
+	admin.HandleFunc("/users", handlers.GetAllUsers).Methods("GET")
+	admin.HandleFunc("/users/{id}", handlers.DeleteUser).Methods("DELETE")
 
 	return router
 }
