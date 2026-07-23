@@ -365,3 +365,78 @@ func UpdateTask(w http.ResponseWriter, r *http.Request) {
 	)
 
 }
+
+func DeleteTask(w http.ResponseWriter, r *http.Request) {
+
+	userID, ok := r.Context().Value("userID").(int)
+
+	if !ok {
+		utils.SendError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	vars := mux.Vars(r)
+
+	idStr := vars["id"]
+
+	id, err := strconv.Atoi(idStr)
+
+	if err != nil {
+		utils.SendError(w, http.StatusBadRequest, "Invalid task ID")
+		return
+	}
+
+	var TaskexistID int
+
+	err = database.DB.QueryRow(
+		`SELECT t.id
+		FROM tasks t
+		JOIN projects p
+		ON t.project_id = p.id
+		WHERE t.id = ?
+		AND p.user_id = ?`,
+		id,
+		userID,
+	).Scan(&TaskexistID)
+
+	if err == sql.ErrNoRows {
+		utils.SendError(w, http.StatusNotFound, "Task not found")
+		return
+	}
+
+	if err != nil {
+		utils.SendError(w, http.StatusInternalServerError, "Database error")
+		return
+	}
+
+	result, err := database.DB.Exec(
+		`DELETE FROM tasks
+		WHERE id = ?`,
+		id,
+	)
+
+	if err != nil {
+		utils.SendError(w, http.StatusInternalServerError, "Failed to delete task")
+		return
+	}
+
+	affectedRows, err := result.RowsAffected()
+
+	if err != nil {
+		utils.SendError(w, http.StatusInternalServerError, "Database error")
+		return
+	}
+
+	if affectedRows == 0 {
+		utils.SendError(w, http.StatusNotFound, "no record affected")
+		return
+	}
+
+	utils.SendSuccess(
+		w,
+		http.StatusOK,
+		"Task deleted successfully",
+		nil,
+	)
+
+}
