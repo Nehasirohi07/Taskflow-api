@@ -11,6 +11,18 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// GetAdminDashboard godoc
+// @Summary Get admin dashboard
+// @Description Get overall  statistics for admin
+// @Tags Admin
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} utils.Response
+// @Failure 401 {object} utils.Response
+// @Failure 403 {object} utils.Response
+// @Failure 500 {object} utils.Response
+// @Router /admin/dashboard [get]
+
 func GetAdminDashboard(w http.ResponseWriter, r *http.Request) {
 
 	var dashboard models.AdminDashboard
@@ -53,6 +65,18 @@ func GetAdminDashboard(w http.ResponseWriter, r *http.Request) {
 	)
 
 }
+
+// GetAllUsers godoc
+// @Summary Get all users
+// @Description Get all registered users (Admin only)
+// @Tags Admin
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} utils.Response
+// @Failure 401 {object} utils.Response
+// @Failure 403 {object} utils.Response
+// @Failure 500 {object} utils.Response
+// @Router /admin/users [get]
 
 func GetAllUsers(w http.ResponseWriter, r *http.Request) {
 
@@ -109,6 +133,21 @@ func GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	)
 
 }
+
+// DeleteUser godoc
+// @Summary Delete user
+// @Description Delete a user by ID (Admin only)
+// @Tags Admin
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "User ID"
+// @Success 200 {object} utils.Response
+// @Failure 400 {object} utils.Response
+// @Failure 401 {object} utils.Response
+// @Failure 403 {object} utils.Response
+// @Failure 404 {object} utils.Response
+// @Failure 500 {object} utils.Response
+// @Router /admin/users/{id} [delete]
 
 func DeleteUser(w http.ResponseWriter, r *http.Request) {
 

@@ -7,6 +7,16 @@ import (
 	"taskflow-api/utils"
 )
 
+// GetDashboard godoc
+// @Summary Get user dashboard
+// @Description Get dashboard statistics for the authenticated user
+// @Tags Dashboard
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} utils.Response
+// @Failure 401 {object} utils.Response
+// @Failure 500 {object} utils.Response
+
 func GetDashboard(w http.ResponseWriter, r *http.Request) {
 
 	userID, ok := r.Context().Value("userID").(int)
