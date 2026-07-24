@@ -8,7 +8,7 @@ This project provides secure authentication, role-based authorization, project m
 
 # ✨ Features
 
-## Authentication
+## 🔐 Authentication
 
 - User Registration
 - User Login
@@ -18,16 +18,16 @@ This project provides secure authentication, role-based authorization, project m
 
 ---
 
-## Authorization
+## 🛡 Authorization
 
 - User Role
 - Admin Role
-- Role-based Middleware
+- Role-Based Middleware
 - Secure Access Control
 
 ---
 
-## Projects
+## 📁 Projects
 
 - Create Project
 - Get All Projects
@@ -39,7 +39,7 @@ Each user can only access their own projects.
 
 ---
 
-## Tasks
+## ✅ Tasks
 
 - Create Task
 - Get All Tasks
@@ -51,7 +51,7 @@ Tasks belong to projects owned by the authenticated user.
 
 ---
 
-## Admin
+## 👑 Admin
 
 - Dashboard Statistics
 - Get All Users
@@ -61,15 +61,15 @@ Accessible only to Admin users.
 
 ---
 
-## Health Check
+## ❤️ Health Check
 
 - Health API
 
 ---
 
-## Documentation
+# 📚 API Documentation
 
-Interactive Swagger UI available at:
+Interactive Swagger UI is available at:
 
 ```
 http://localhost:5051/swagger/index.html
@@ -79,10 +79,10 @@ http://localhost:5051/swagger/index.html
 
 # 🛠 Tech Stack
 
-- Go
+- Go (Golang)
 - Gorilla Mux
 - MySQL
-- JWT
+- JWT Authentication
 - bcrypt
 - Docker
 - Swagger (Swaggo)
@@ -91,7 +91,7 @@ http://localhost:5051/swagger/index.html
 
 # 📁 Project Structure
 
-```
+```text
 taskflow-api/
 │
 ├── config/
@@ -140,13 +140,13 @@ Example:
 ```env
 PORT=5051
 
-DB_USER=root
-DB_PASSWORD=root123
+DB_USER=your_db_user
+DB_PASSWORD=your_db_password
 DB_HOST=localhost
 DB_PORT=3306
 DB_NAME=taskflow
 
-JWT_SECRET=your-secret-key
+JWT_SECRET=your_jwt_secret
 ```
 
 ---
@@ -161,19 +161,19 @@ go run main.go
 
 # 🐳 Docker
 
-Build
+### Build
 
 ```bash
 docker compose build
 ```
 
-Run
+### Start Containers
 
 ```bash
 docker compose up
 ```
 
-Stop
+### Stop Containers
 
 ```bash
 docker compose down
@@ -181,15 +181,15 @@ docker compose down
 
 ---
 
-# 📚 Swagger
+# 📖 Swagger Documentation
 
-Generate Docs
+Generate Swagger files:
 
 ```bash
 swag init
 ```
 
-Swagger URL
+Open Swagger UI:
 
 ```
 http://localhost:5051/swagger/index.html
@@ -197,11 +197,11 @@ http://localhost:5051/swagger/index.html
 
 ---
 
-# 🔐 Authentication
+# 🔑 Authentication
 
-Use Login API to obtain a JWT token.
+Login using the **/login** endpoint to obtain a JWT token.
 
-Add the token in Swagger:
+Use the token in Swagger:
 
 ```
 Bearer <your_token>
@@ -211,40 +211,40 @@ Bearer <your_token>
 
 # 📌 API Modules
 
-### Authentication
+## Authentication
 
-- POST /register
-- POST /login
+- POST `/register`
+- POST `/login`
 
 ### Projects
 
-- POST /projects
-- GET /projects
-- GET /projects/{id}
-- PUT /projects/{id}
-- DELETE /projects/{id}
+- POST `/projects`
+- GET `/projects`
+- GET `/projects/{id}`
+- PUT `/projects/{id}`
+- DELETE `/projects/{id}`
 
 ### Tasks
 
-- POST /projects/{id}/tasks
-- GET /projects/{id}/tasks
-- GET /tasks/{id}
-- PUT /tasks/{id}
-- DELETE /tasks/{id}
+- POST `/projects/{id}/tasks`
+- GET `/projects/{id}/tasks`
+- GET `/tasks/{id}`
+- PUT `/tasks/{id}`
+- DELETE `/tasks/{id}`
 
 ### Admin
 
-- GET /admin/dashboard
-- GET /admin/users
-- DELETE /admin/users/{id}
+- GET `/admin/dashboard`
+- GET `/admin/users`
+- DELETE `/admin/users/{id}`
 
 ### Health
 
-- GET /health
+- GET `/health`
 
 ---
 
-# 🔒 Security
+# 🔒 Security Features
 
 - Password Hashing using bcrypt
 - JWT Authentication
@@ -259,15 +259,15 @@ Bearer <your_token>
 
 **Neha Sirohi**
 
-GitHub:
+**GitHub:**  
 https://github.com/Nehasirohi07
 
-LinkedIn:
-(Add your LinkedIn URL)
+**LinkedIn:**  
+(Add your LinkedIn Profile)
 
 ---
 
-# ⭐ Future Improvements
+# 🚀 Future Improvements
 
 - Pagination
 - Search & Filtering
@@ -277,3 +277,7 @@ LinkedIn:
 - Unit Testing
 - CI/CD Pipeline
 - Deployment
+
+---
+
+## ⭐ If you found this project useful, consider giving it a star on GitHub!
