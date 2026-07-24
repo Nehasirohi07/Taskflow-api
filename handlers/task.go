@@ -3,6 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"taskflow-api/database"
@@ -58,6 +59,8 @@ func CreateTask(w http.ResponseWriter, r *http.Request) {
 
 	idStr := vars["id"]
 
+	fmt.Println("Task Route Vars:", vars)
+
 	id, err := strconv.Atoi(idStr)
 
 	if err != nil {
@@ -89,7 +92,7 @@ func CreateTask(w http.ResponseWriter, r *http.Request) {
 		`INSERT INTO tasks
 		(project_id, title, description, status, due_date)
 		VALUES (? , ? , ? , ?, ?)`,
-		task.ProjectID,
+		id,
 		task.Title,
 		task.Description,
 		task.Status,
@@ -153,7 +156,7 @@ func GetTasks(w http.ResponseWriter, r *http.Request) {
 	).Scan(&projectID)
 
 	if err == sql.ErrNoRows {
-		utils.SendError(w, http.StatusNotFound, "Project not found")
+		utils.SendError(w, http.StatusNotFound, "task not found")
 		return
 	}
 	if err != nil {
