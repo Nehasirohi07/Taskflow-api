@@ -28,6 +28,8 @@ func main() {
 
 	database.InitDB()
 
+	database.CreateDefaultAdmin()
+
 	router := routes.RegisterRoutes()
 
 	router.PathPrefix("/swagger/").Handler(
