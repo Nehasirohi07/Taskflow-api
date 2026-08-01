@@ -240,7 +240,7 @@ function Dashboard() {
         {/* Projects Section */}
         <div className="mt-8 rounded-3xl bg-white p-8 shadow-sm">
 
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 
             <div>
               <h3 className="text-2xl font-bold text-slate-800">
@@ -252,12 +252,10 @@ function Dashboard() {
               </p>
             </div>
 
+            {/* New Project */}
             <button
-              onClick={() => {
-                // Project creation page will be added next
-                console.log("New Project clicked");
-              }}
-              className="rounded-xl bg-sky-500 px-5 py-3 font-bold text-white shadow-lg shadow-sky-200 transition hover:bg-sky-600"
+              onClick={() => navigate("/projects/new")}
+              className="rounded-xl bg-sky-500 px-5 py-3 font-bold text-white shadow-lg shadow-sky-200 transition hover:bg-sky-600 active:scale-[0.98]"
             >
               + New Project
             </button>
@@ -282,13 +280,37 @@ function Dashboard() {
               </p>
 
               <button
-                onClick={() => {
-                  console.log("Create first project clicked");
-                }}
-                className="mt-6 rounded-xl bg-sky-500 px-6 py-3 font-bold text-white transition hover:bg-sky-600"
+                onClick={() => navigate("/projects/new")}
+                className="mt-6 rounded-xl bg-sky-500 px-6 py-3 font-bold text-white shadow-lg shadow-sky-200 transition hover:bg-sky-600 active:scale-[0.98]"
               >
                 Create your first project 🐧
               </button>
+
+            </div>
+          )}
+
+          {/* Projects exist */}
+          {dashboard && dashboard.total_projects > 0 && (
+            <div className="mt-8 rounded-2xl bg-sky-50 p-6">
+
+              <div className="flex items-center gap-4">
+
+                <div className="text-5xl">
+                  📁
+                </div>
+
+                <div>
+                  <h4 className="text-lg font-bold text-slate-700">
+                    You have {dashboard.total_projects} project
+                    {dashboard.total_projects !== 1 ? "s" : ""}
+                  </h4>
+
+                  <p className="mt-1 text-sm text-slate-500">
+                    Your projects will appear here.
+                  </p>
+                </div>
+
+              </div>
 
             </div>
           )}
