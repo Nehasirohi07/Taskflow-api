@@ -21,84 +21,130 @@ func GetDashboard(w http.ResponseWriter, r *http.Request) {
 	userID, ok := r.Context().Value("userID").(int)
 
 	if !ok {
-		utils.SendError(w, http.StatusUnauthorized, "Unauthorized")
+		utils.SendError(
+			w,
+			http.StatusUnauthorized,
+			"Unauthorized",
+		)
 		return
 	}
 
 	var dashboard models.Dashboard
 
-	// var Totalprojects int
+	// --------------------------------
+	// TOTAL PROJECTS
+	// --------------------------------
 
 	err := database.DB.QueryRow(
 		`SELECT COUNT(*)
-		FROM projects
-		WHERE user_id = ?`,
+		 FROM projects
+		 WHERE user_id = ?`,
 		userID,
 	).Scan(&dashboard.TotalProjects)
 
 	if err != nil {
-		utils.SendError(w, http.StatusInternalServerError, "Database error")
+		utils.SendError(
+			w,
+			http.StatusInternalServerError,
+			"Failed to fetch total projects",
+		)
 		return
 	}
 
+	// --------------------------------
+	// TOTAL TASKS
+	// --------------------------------
+
 	err = database.DB.QueryRow(
 		`SELECT COUNT(*)
-		FROM tasks t
-		JOIN projects p
-		ON t.project_id = p.id
-		WHERE p.user_id = ?`,
+		 FROM tasks t
+		 INNER JOIN projects p
+		 ON t.project_id = p.id
+		 WHERE p.user_id = ?`,
 		userID,
 	).Scan(&dashboard.TotalTasks)
 
 	if err != nil {
-		utils.SendError(w, http.StatusInternalServerError, "Database error")
+		utils.SendError(
+			w,
+			http.StatusInternalServerError,
+			"Failed to fetch total tasks",
+		)
 		return
 	}
 
+	// --------------------------------
+	// ACTIVE TASKS
+	// --------------------------------
+
 	err = database.DB.QueryRow(
 		`SELECT COUNT(*)
-		FROM tasks t
-		JOIN projects p
-		ON t.project_id = p.id
-		WHERE p.user_id = ?
-		AND t.status = 'completed'`,
+		 FROM tasks t
+		 INNER JOIN projects p
+		 ON t.project_id = p.id
+		 WHERE p.user_id = ?
+		 AND t.status = 'active'`,
+		userID,
+	).Scan(&dashboard.ActiveTasks)
+
+	if err != nil {
+		utils.SendError(
+			w,
+			http.StatusInternalServerError,
+			"Failed to fetch active tasks",
+		)
+		return
+	}
+
+	// --------------------------------
+	// COMPLETED TASKS
+	// --------------------------------
+
+	err = database.DB.QueryRow(
+		`SELECT COUNT(*)
+		 FROM tasks t
+		 INNER JOIN projects p
+		 ON t.project_id = p.id
+		 WHERE p.user_id = ?
+		 AND t.status = 'completed'`,
 		userID,
 	).Scan(&dashboard.CompletedTasks)
 
 	if err != nil {
-		utils.SendError(w, http.StatusInternalServerError, "Database error")
+		utils.SendError(
+			w,
+			http.StatusInternalServerError,
+			"Failed to fetch completed tasks",
+		)
 		return
 	}
+
+	// --------------------------------
+	// ARCHIVED TASKS
+	// --------------------------------
 
 	err = database.DB.QueryRow(
 		`SELECT COUNT(*)
-		FROM tasks t
-		JOIN projects p
-		ON t.project_id = p.id 
-		WHERE p.user_id = ?
-		AND t.status = "pending"`,
+		 FROM tasks t
+		 INNER JOIN projects p
+		 ON t.project_id = p.id
+		 WHERE p.user_id = ?
+		 AND t.status = 'archived'`,
 		userID,
-	).Scan(&dashboard.PendingTasks)
+	).Scan(&dashboard.ArchivedTasks)
 
 	if err != nil {
-		utils.SendError(w, http.StatusInternalServerError, "Database error")
+		utils.SendError(
+			w,
+			http.StatusInternalServerError,
+			"Failed to fetch archived tasks",
+		)
 		return
 	}
 
-	err = database.DB.QueryRow(
-		`SELECT COUNT(*)
-		FROM tasks t
-		JOIN projects p
-		ON t.projects_id = p.id
-		WHERE p.user_id = ?
-		AND t.status = "in_progress"`,
-		userID,
-	).Scan(&dashboard.InProgressTasks)
-
-	if err != nil {
-		utils.SendError(w, http.StatusInternalServerError, "Database error")
-		return
-	}
+	// --------------------------------
+	// RESPONSE
+	// --------------------------------
 
 	utils.SendSuccess(
 		w,

@@ -17,6 +17,7 @@ import (
 	"taskflow-api/config"
 	"taskflow-api/database"
 	_ "taskflow-api/docs"
+	"taskflow-api/middleware"
 	"taskflow-api/routes"
 
 	httpSwagger "github.com/swaggo/http-swagger"
@@ -42,7 +43,7 @@ func main() {
 
 	fmt.Println("🚀 Server running on", port)
 
-	err := http.ListenAndServe(port, router)
+	err := http.ListenAndServe(port, middleware.CORS(router))
 
 	if err != nil {
 		fmt.Println(err)
