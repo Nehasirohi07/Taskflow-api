@@ -14,11 +14,11 @@ type Task struct {
 }
 
 type TaskRequest struct {
-	ProjectID   int        `json:"project_id"`
-	Title       string     `json:"title"`
-	Description string     `json:"description"`
-	Status      string     `json:"status"`
-	DueDate     *time.Time `json:"due_date"`
+	ProjectID   int    `json:"project_id"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Status      string `json:"status"`
+	DueDate     string `json:"due_date"`
 }
 
 type TaskResponse struct {

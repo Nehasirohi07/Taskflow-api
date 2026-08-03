@@ -87,9 +87,11 @@ func ValidateTask(task models.TaskRequest) error {
 		return errors.New("Title must be atleast 3 characters")
 	}
 
-	if task.Status != "pending" &&
-		task.Status != "in_progress" &&
-		task.Status != "completed" {
+	// Allowed task statuses:
+	// active | completed | archived
+	if task.Status != "active" &&
+		task.Status != "completed" &&
+		task.Status != "archived" {
 		return errors.New("Invalid status")
 	}
 

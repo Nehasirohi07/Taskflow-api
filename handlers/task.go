@@ -9,6 +9,7 @@ import (
 	"taskflow-api/database"
 	"taskflow-api/models"
 	"taskflow-api/utils"
+	"time"
 
 	"github.com/gorilla/mux"
 )
@@ -68,6 +69,19 @@ func CreateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var dueDate interface{} = nil
+
+	if task.DueDate != "" {
+		parsedDate, err := time.Parse("2006-01-02", task.DueDate)
+
+		if err != nil {
+			utils.SendError(w, http.StatusBadRequest, "Invalid due date format")
+			return
+		}
+
+		dueDate = parsedDate
+	}
+
 	var existingProjectID int
 
 	err = database.DB.QueryRow(
@@ -97,7 +111,7 @@ func CreateTask(w http.ResponseWriter, r *http.Request) {
 		task.Title,
 		task.Description,
 		task.Status,
-		task.DueDate,
+		dueDate,
 	)
 
 	if err != nil {
@@ -400,6 +414,18 @@ func UpdateTask(w http.ResponseWriter, r *http.Request) {
 		utils.SendError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	var dueDate interface{} = nil
+
+	if taskRequest.DueDate != "" {
+		parsedDate, err := time.Parse("2006-01-02", taskRequest.DueDate)
+
+		if err != nil {
+			utils.SendError(w, http.StatusBadRequest, "Invalid due date format")
+			return
+		}
+
+		dueDate = parsedDate
+	}
 
 	var existingTaskID int
 
@@ -436,7 +462,7 @@ func UpdateTask(w http.ResponseWriter, r *http.Request) {
 		taskRequest.Title,
 		taskRequest.Description,
 		taskRequest.Status,
-		taskRequest.DueDate,
+		dueDate,
 		taskID,
 	)
 

@@ -76,7 +76,10 @@ function CreateTask() {
       navigate(`/projects/${projectID}`);
     } catch (error: any) {
       console.error("Create task error:", error);
-      console.error("Backend response:", error.response?.data);
+      console.error(
+        "Backend response:",
+        error.response?.data
+      );
 
       if (error.response?.status === 401) {
         localStorage.removeItem("token");
