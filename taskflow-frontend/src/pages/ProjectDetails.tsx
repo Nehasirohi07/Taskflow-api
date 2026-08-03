@@ -32,6 +32,7 @@ function ProjectDetails() {
 
   const [loading, setLoading] = useState(true);
   const [tasksLoading, setTasksLoading] = useState(true);
+  const [deletingTaskId, setDeletingTaskId] = useState<number | null>(null);
 
   const [error, setError] = useState("");
   const [taskError, setTaskError] = useState("");
@@ -47,10 +48,7 @@ function ProjectDetails() {
     }
 
     if (!projectId || !/^\d+$/.test(projectId)) {
-      setError(
-        `Invalid project ID: ${projectId || "missing"}`
-      );
-
+      setError(`Invalid project ID: ${projectId || "missing"}`);
       setLoading(false);
       setTasksLoading(false);
       return;
@@ -58,29 +56,22 @@ function ProjectDetails() {
 
     const fetchProject = async () => {
       try {
-        const response = await api.get(
-          `/projects/${projectId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        const response = await api.get(`/projects/${projectId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
         const projectData =
           response.data?.data || response.data;
 
         setProject(projectData);
       } catch (error: any) {
-        console.error(
-          "Project details error:",
-          error
-        );
+        console.error("Project details error:", error);
 
         if (error.response?.status === 401) {
           localStorage.removeItem("token");
           localStorage.removeItem("user");
-
           navigate("/login");
           return;
         }
@@ -120,7 +111,6 @@ function ProjectDetails() {
         if (error.response?.status === 401) {
           localStorage.removeItem("token");
           localStorage.removeItem("user");
-
           navigate("/login");
           return;
         }
@@ -173,13 +163,6 @@ function ProjectDetails() {
   };
 
   const handleDeleteTask = async (taskId: number) => {
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      navigate("/login");
-      return;
-    }
-
     const confirmed = window.confirm(
       "Are you sure you want to delete this task?"
     );
@@ -188,7 +171,15 @@ function ProjectDetails() {
       return;
     }
 
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
     try {
+      setDeletingTaskId(taskId);
       setTaskError("");
 
       await api.delete(`/tasks/${taskId}`, {
@@ -197,16 +188,14 @@ function ProjectDetails() {
         },
       });
 
-      setTasks((previousTasks) =>
-        previousTasks.filter(
+      // Remove deleted task from UI immediately
+      setTasks((currentTasks) =>
+        currentTasks.filter(
           (task) => task.id !== taskId
         )
       );
     } catch (error: any) {
-      console.error(
-        "Delete task error:",
-        error
-      );
+      console.error("Delete task error:", error);
 
       if (error.response?.status === 401) {
         localStorage.removeItem("token");
@@ -221,22 +210,24 @@ function ProjectDetails() {
           error.response?.data?.error ||
           "Failed to delete task."
       );
+    } finally {
+      setDeletingTaskId(null);
     }
   };
 
   const getStatusClasses = (status: string) => {
     switch (status?.toLowerCase()) {
-      case "active":
-        return "bg-sky-100 text-sky-600";
-
       case "pending":
-        return "bg-yellow-100 text-yellow-700";
+        return "bg-yellow-100 text-yellow-600";
 
       case "in_progress":
-        return "bg-blue-100 text-blue-700";
+        return "bg-sky-100 text-sky-600";
 
       case "completed":
         return "bg-green-100 text-green-600";
+
+      case "active":
+        return "bg-sky-100 text-sky-600";
 
       case "archived":
         return "bg-slate-100 text-slate-500";
@@ -257,26 +248,18 @@ function ProjectDetails() {
       return "No date";
     }
 
-    return parsedDate.toLocaleDateString(
-      "en-IN",
-      {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-      }
-    );
+    return parsedDate.toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
   };
 
-  /*
-   * Loading
-   */
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-sky-50">
         <div className="text-center">
-          <div className="text-7xl">
-            🐧
-          </div>
+          <div className="text-7xl">🐧</div>
 
           <p className="mt-4 font-semibold text-slate-600">
             Pengu is loading your project...
@@ -286,9 +269,6 @@ function ProjectDetails() {
     );
   }
 
-  /*
-   * Error
-   */
   if (error) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-sky-50 px-6">
@@ -318,9 +298,7 @@ function ProjectDetails() {
 
             <button
               type="button"
-              onClick={() =>
-                window.location.reload()
-              }
+              onClick={() => window.location.reload()}
               className="rounded-xl border border-slate-200 bg-white px-6 py-3 font-bold text-slate-600 transition hover:bg-slate-50"
             >
               Try Again
@@ -333,9 +311,6 @@ function ProjectDetails() {
     );
   }
 
-  /*
-   * Project not found
-   */
   if (!project) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-sky-50 px-6">
@@ -616,100 +591,103 @@ function ProjectDetails() {
             )}
 
           {/* Tasks */}
-          {!tasksLoading &&
-            tasks.length > 0 && (
-              <div className="mt-8 space-y-4">
+          {!tasksLoading && tasks.length > 0 && (
+            <div className="mt-8 space-y-4">
 
-                {tasks.map((task) => (
-                  <div
-                    key={task.id}
-                    className="rounded-2xl border border-slate-100 bg-slate-50 p-5 transition hover:shadow-md"
-                  >
+              {tasks.map((task) => (
 
-                    {/* Task Header */}
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div
+                  key={task.id}
+                  className="rounded-2xl border border-slate-100 bg-slate-50 p-5 transition hover:shadow-md"
+                >
 
-                      <div className="min-w-0">
+                  {/* Task Header */}
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 
-                        <h4 className="text-lg font-bold text-slate-800">
-                          {task.title}
-                        </h4>
+                    <div className="min-w-0">
 
-                        <p className="mt-2 text-sm leading-6 text-slate-500">
-                          {task.description ||
-                            "No description provided."}
-                        </p>
+                      <h4 className="text-lg font-bold text-slate-800">
+                        {task.title}
+                      </h4>
 
-                      </div>
+                      <p className="mt-2 text-sm leading-6 text-slate-500">
+                        {task.description ||
+                          "No description provided."}
+                      </p>
 
-                      <span
-                        className={`w-fit shrink-0 rounded-full px-3 py-1 text-xs font-bold capitalize ${getStatusClasses(
-                          task.status
-                        )}`}
-                      >
-                        {task.status.replace(
-                          "_",
-                          " "
-                        )}
+                    </div>
+
+                    <span
+                      className={`w-fit shrink-0 rounded-full px-3 py-1 text-xs font-bold capitalize ${getStatusClasses(
+                        task.status
+                      )}`}
+                    >
+                      {task.status.replace(
+                        "_",
+                        " "
+                      )}
+                    </span>
+
+                  </div>
+
+                  {/* Task Information */}
+                  <div className="mt-5 flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
+
+                    <div className="flex flex-wrap gap-4 text-xs font-medium text-slate-400">
+
+                      <span>
+                        📅 Due:{" "}
+                        {formatDate(task.due_date)}
+                      </span>
+
+                      <span>
+                        Created:{" "}
+                        {formatDate(task.created_at)}
                       </span>
 
                     </div>
 
-                    {/* Task Footer */}
-                    <div className="mt-5 flex flex-col gap-4 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                    {/* Task Actions */}
+                    <div className="flex flex-wrap gap-2">
 
-                      <div className="flex flex-wrap gap-4 text-xs font-medium text-slate-400">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          goToEditTask(task.id)
+                        }
+                        disabled={
+                          deletingTaskId === task.id
+                        }
+                        className="cursor-pointer rounded-lg border border-sky-200 bg-white px-4 py-2 text-sm font-bold text-sky-600 transition hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        ✏️ Edit
+                      </button>
 
-                        <span>
-                          📅 Due:{" "}
-                          {formatDate(
-                            task.due_date
-                          )}
-                        </span>
-
-                        <span>
-                          Created:{" "}
-                          {formatDate(
-                            task.created_at
-                          )}
-                        </span>
-
-                      </div>
-
-                      {/* Task Actions */}
-                      <div className="flex gap-2">
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            goToEditTask(task.id)
-                          }
-                          className="cursor-pointer rounded-lg bg-sky-100 px-4 py-2 text-sm font-bold text-sky-600 transition hover:bg-sky-200"
-                        >
-                          ✏️ Edit
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleDeleteTask(
-                              task.id
-                            )
-                          }
-                          className="cursor-pointer rounded-lg bg-red-100 px-4 py-2 text-sm font-bold text-red-600 transition hover:bg-red-200"
-                        >
-                          🗑️ Delete
-                        </button>
-
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleDeleteTask(task.id)
+                        }
+                        disabled={
+                          deletingTaskId === task.id
+                        }
+                        className="cursor-pointer rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-bold text-red-500 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {deletingTaskId === task.id
+                          ? "Deleting..."
+                          : "🗑️ Delete"}
+                      </button>
 
                     </div>
 
                   </div>
-                ))}
 
-              </div>
-            )}
+                </div>
+
+              ))}
+
+            </div>
+          )}
 
         </div>
 
