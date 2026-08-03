@@ -21,7 +21,7 @@ function EditTask() {
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [status, setStatus] = useState("pending");
+  const [status, setStatus] = useState("active");
   const [dueDate, setDueDate] = useState("");
 
   const [loading, setLoading] = useState(true);
@@ -30,9 +30,6 @@ function EditTask() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  /*
-   * Fetch task
-   */
   useEffect(() => {
     const token = localStorage.getItem("token");
 
@@ -42,22 +39,18 @@ function EditTask() {
     }
 
     if (!id || !/^\d+$/.test(id)) {
-      setError("Invalid task ID.");
+      setError("Invalid task ID");
       setLoading(false);
       return;
     }
 
     const fetchTask = async () => {
       try {
-        console.log("Fetching task:", `/tasks/${id}`);
-
         const response = await api.get(`/tasks/${id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
-
-        console.log("Task response:", response.data);
 
         const taskData =
           response.data?.data || response.data;
@@ -66,7 +59,10 @@ function EditTask() {
 
         setTitle(taskData.title || "");
         setDescription(taskData.description || "");
-        setStatus(taskData.status || "pending");
+
+        // Database values:
+        // active | completed | archived
+        setStatus(taskData.status || "active");
 
         if (taskData.due_date) {
           setDueDate(
@@ -74,15 +70,9 @@ function EditTask() {
               .toISOString()
               .split("T")[0]
           );
-        } else {
-          setDueDate("");
         }
       } catch (error: any) {
         console.error("Fetch task error:", error);
-        console.error(
-          "Backend response:",
-          error.response?.data
-        );
 
         if (error.response?.status === 401) {
           localStorage.removeItem("token");
@@ -105,9 +95,6 @@ function EditTask() {
     fetchTask();
   }, [id, navigate]);
 
-  /*
-   * Logout
-   */
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -115,27 +102,10 @@ function EditTask() {
     navigate("/login");
   };
 
-  /*
-   * Back to project
-   */
-  const handleCancel = () => {
-    if (task?.project_id) {
-      navigate(`/projects/${task.project_id}`);
-    } else {
-      navigate("/dashboard");
-    }
-  };
-
-  /*
-   * Update task
-   */
   const handleSubmit = async (
     event: React.FormEvent<HTMLFormElement>
   ) => {
     event.preventDefault();
-
-    setError("");
-    setSuccess("");
 
     const token = localStorage.getItem("token");
 
@@ -150,18 +120,16 @@ function EditTask() {
     }
 
     if (title.trim().length < 3) {
-      setError(
-        "Task title must be at least 3 characters."
-      );
+      setError("Title must be at least 3 characters.");
       return;
     }
 
     try {
       setSaving(true);
+      setError("");
+      setSuccess("");
 
-      console.log("Updating task:", id);
-
-      const response = await api.put(
+      await api.put(
         `/tasks/${id}`,
         {
           title: title.trim(),
@@ -176,31 +144,17 @@ function EditTask() {
         }
       );
 
-      console.log(
-        "Task updated:",
-        response.data
-      );
+      setSuccess("Task updated successfully! 🐧");
 
-      setSuccess(
-        "Task updated successfully! 🐧"
-      );
-
-      /*
-       * Go back to project after successful update
-       */
       setTimeout(() => {
         if (task?.project_id) {
           navigate(`/projects/${task.project_id}`);
         } else {
           navigate("/dashboard");
         }
-      }, 800);
+      }, 1000);
     } catch (error: any) {
-      console.error(
-        "Update task error:",
-        error
-      );
-
+      console.error("Update task error:", error);
       console.error(
         "Backend response:",
         error.response?.data
@@ -224,14 +178,18 @@ function EditTask() {
     }
   };
 
-  /*
-   * Loading screen
-   */
+  const handleCancel = () => {
+    if (task?.project_id) {
+      navigate(`/projects/${task.project_id}`);
+    } else {
+      navigate("/dashboard");
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-sky-50">
         <div className="text-center">
-
           <div className="text-7xl">
             🐧
           </div>
@@ -239,19 +197,14 @@ function EditTask() {
           <p className="mt-4 font-semibold text-slate-600">
             Pengu is loading your task...
           </p>
-
         </div>
       </div>
     );
   }
 
-  /*
-   * Error screen
-   */
   if (error && !task) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-sky-50 px-6">
-
         <div className="w-full max-w-lg rounded-3xl bg-white p-8 text-center shadow-xl">
 
           <div className="text-6xl">
@@ -275,7 +228,6 @@ function EditTask() {
           </button>
 
         </div>
-
       </div>
     );
   }
@@ -285,7 +237,6 @@ function EditTask() {
 
       {/* Navbar */}
       <header className="border-b border-sky-100 bg-white">
-
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
 
           <div className="flex items-center gap-3">
@@ -320,46 +271,35 @@ function EditTask() {
           </button>
 
         </div>
-
       </header>
 
       {/* Main */}
       <main className="mx-auto max-w-3xl px-6 py-10">
 
-        {/* Back */}
         <button
           type="button"
           onClick={handleCancel}
-          className="mb-6 font-semibold text-sky-600 transition hover:text-sky-700"
+          className="mb-6 font-semibold text-sky-600 hover:text-sky-700"
         >
           ← Back to Project
         </button>
 
-        {/* Card */}
         <div className="rounded-3xl bg-white p-8 shadow-xl">
 
           {/* Header */}
-          <div className="mb-8 flex items-center gap-4">
+          <div className="mb-8">
 
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-sky-100 text-4xl">
-              ✏️
-            </div>
+            <p className="text-sm font-bold uppercase tracking-widest text-sky-500">
+              Task Management
+            </p>
 
-            <div>
+            <h2 className="mt-1 text-3xl font-extrabold text-slate-800">
+              Edit Task ✏️
+            </h2>
 
-              <p className="text-sm font-bold uppercase tracking-widest text-sky-500">
-                Task Management
-              </p>
-
-              <h2 className="mt-1 text-3xl font-extrabold text-slate-800">
-                Edit Task
-              </h2>
-
-              <p className="mt-1 text-sm text-slate-500">
-                Update your task details.
-              </p>
-
-            </div>
+            <p className="mt-2 text-sm text-slate-500">
+              Update the details of your task.
+            </p>
 
           </div>
 
@@ -377,7 +317,6 @@ function EditTask() {
             </div>
           )}
 
-          {/* Form */}
           <form
             onSubmit={handleSubmit}
             className="space-y-6"
@@ -386,22 +325,18 @@ function EditTask() {
             {/* Title */}
             <div>
 
-              <label
-                htmlFor="title"
-                className="mb-2 block text-sm font-bold text-slate-700"
-              >
+              <label className="mb-2 block text-sm font-bold text-slate-700">
                 Task Title
               </label>
 
               <input
-                id="title"
                 type="text"
                 value={title}
                 onChange={(event) =>
                   setTitle(event.target.value)
                 }
                 placeholder="Enter task title"
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
+                className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
                 required
               />
 
@@ -410,22 +345,18 @@ function EditTask() {
             {/* Description */}
             <div>
 
-              <label
-                htmlFor="description"
-                className="mb-2 block text-sm font-bold text-slate-700"
-              >
+              <label className="mb-2 block text-sm font-bold text-slate-700">
                 Description
               </label>
 
               <textarea
-                id="description"
                 value={description}
                 onChange={(event) =>
                   setDescription(event.target.value)
                 }
                 placeholder="Enter task description"
                 rows={5}
-                className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
+                className="w-full resize-none rounded-xl border border-slate-200 px-4 py-3 text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
               />
 
             </div>
@@ -446,19 +377,19 @@ function EditTask() {
                 onChange={(event) =>
                   setStatus(event.target.value)
                 }
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-slate-800 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
               >
 
-                <option value="pending">
-                  Pending
-                </option>
-
-                <option value="in_progress">
-                  In Progress
+                <option value="active">
+                  Active
                 </option>
 
                 <option value="completed">
                   Completed
+                </option>
+
+                <option value="archived">
+                  Archived
                 </option>
 
               </select>
@@ -468,26 +399,18 @@ function EditTask() {
             {/* Due Date */}
             <div>
 
-              <label
-                htmlFor="dueDate"
-                className="mb-2 block text-sm font-bold text-slate-700"
-              >
+              <label className="mb-2 block text-sm font-bold text-slate-700">
                 Due Date
               </label>
 
               <input
-                id="dueDate"
                 type="date"
                 value={dueDate}
                 onChange={(event) =>
                   setDueDate(event.target.value)
                 }
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-slate-800 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
+                className="w-full rounded-xl border border-slate-200 px-4 py-3 text-slate-700 outline-none transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100"
               />
-
-              <p className="mt-2 text-xs text-slate-400">
-                Leave empty if the task has no deadline.
-              </p>
 
             </div>
 
@@ -498,7 +421,7 @@ function EditTask() {
                 type="button"
                 onClick={handleCancel}
                 disabled={saving}
-                className="w-full rounded-xl border border-slate-200 bg-white px-6 py-3.5 font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                className="w-full rounded-xl border border-slate-200 bg-white px-6 py-3 font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
               >
                 Cancel
               </button>
@@ -506,7 +429,7 @@ function EditTask() {
               <button
                 type="submit"
                 disabled={saving}
-                className="w-full rounded-xl bg-sky-500 px-6 py-3.5 font-bold text-white shadow-lg shadow-sky-200 transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                className="w-full rounded-xl bg-sky-500 px-6 py-3 font-bold text-white shadow-lg shadow-sky-200 transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
               >
                 {saving
                   ? "Updating..."
@@ -520,7 +443,6 @@ function EditTask() {
         </div>
 
       </main>
-
     </div>
   );
 }

@@ -37,7 +37,6 @@ func CreateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get project ID from URL
 	vars := mux.Vars(r)
 
 	idStr := vars["id"]
@@ -49,7 +48,6 @@ func CreateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Decode request body
 	var task models.TaskRequest
 
 	err = json.NewDecoder(r.Body).Decode(&task)
@@ -59,13 +57,10 @@ func CreateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Always use the project ID from the URL
 	task.ProjectID = projectID
 
-	// Sanitize
 	task = utils.SanitizeTask(task)
 
-	// Validate
 	err = utils.ValidateTask(task)
 
 	if err != nil {
@@ -73,7 +68,6 @@ func CreateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify that project belongs to logged-in user
 	var existingProjectID int
 
 	err = database.DB.QueryRow(
@@ -95,7 +89,6 @@ func CreateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create task
 	result, err := database.DB.Exec(
 		`INSERT INTO tasks
 		(project_id, title, description, status, due_date)
@@ -120,7 +113,6 @@ func CreateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Fetch created task
 	var response models.TaskResponse
 
 	err = database.DB.QueryRow(
@@ -193,7 +185,6 @@ func GetTasks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify project ownership
 	var existingProjectID int
 
 	err = database.DB.QueryRow(
@@ -410,7 +401,6 @@ func UpdateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify task belongs to user's project
 	var existingTaskID int
 
 	err = database.DB.QueryRow(
@@ -496,7 +486,6 @@ func DeleteTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify task belongs to user's project
 	var existingTaskID int
 
 	err = database.DB.QueryRow(

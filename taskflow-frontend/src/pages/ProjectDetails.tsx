@@ -32,7 +32,9 @@ function ProjectDetails() {
 
   const [loading, setLoading] = useState(true);
   const [tasksLoading, setTasksLoading] = useState(true);
+
   const [deletingTaskId, setDeletingTaskId] = useState<number | null>(null);
+  const [deletingProject, setDeletingProject] = useState(false);
 
   const [error, setError] = useState("");
   const [taskError, setTaskError] = useState("");
@@ -62,8 +64,7 @@ function ProjectDetails() {
           },
         });
 
-        const projectData =
-          response.data?.data || response.data;
+        const projectData = response.data?.data || response.data;
 
         setProject(projectData);
       } catch (error: any) {
@@ -97,14 +98,9 @@ function ProjectDetails() {
           }
         );
 
-        const taskData =
-          response.data?.data || response.data;
+        const taskData = response.data?.data || response.data;
 
-        setTasks(
-          Array.isArray(taskData)
-            ? taskData
-            : []
-        );
+        setTasks(Array.isArray(taskData) ? taskData : []);
       } catch (error: any) {
         console.error("Tasks error:", error);
 
@@ -162,6 +158,64 @@ function ProjectDetails() {
     navigate(`/tasks/${taskId}/edit`);
   };
 
+  // DELETE PROJECT
+
+  const handleDeleteProject = async () => {
+    if (!projectId) {
+      setError("Project ID is missing.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${project?.title}"?\n\n` +
+        "This will also delete all tasks inside this project.\n\n" +
+        "This action cannot be undone."
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    try {
+      setDeletingProject(true);
+      setError("");
+
+      await api.delete(`/projects/${projectId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      navigate("/dashboard");
+    } catch (error: any) {
+      console.error("Delete project error:", error);
+
+      if (error.response?.status === 401) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        navigate("/login");
+        return;
+      }
+
+      setError(
+        error.response?.data?.message ||
+          error.response?.data?.error ||
+          "Failed to delete project."
+      );
+    } finally {
+      setDeletingProject(false);
+    }
+  };
+
+  // DELETE TASK
+
   const handleDeleteTask = async (taskId: number) => {
     const confirmed = window.confirm(
       "Are you sure you want to delete this task?"
@@ -188,11 +242,8 @@ function ProjectDetails() {
         },
       });
 
-      // Remove deleted task from UI immediately
       setTasks((currentTasks) =>
-        currentTasks.filter(
-          (task) => task.id !== taskId
-        )
+        currentTasks.filter((task) => task.id !== taskId)
       );
     } catch (error: any) {
       console.error("Delete task error:", error);
@@ -200,7 +251,6 @@ function ProjectDetails() {
       if (error.response?.status === 401) {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
-
         navigate("/login");
         return;
       }
@@ -217,17 +267,11 @@ function ProjectDetails() {
 
   const getStatusClasses = (status: string) => {
     switch (status?.toLowerCase()) {
-      case "pending":
-        return "bg-yellow-100 text-yellow-600";
-
-      case "in_progress":
+      case "active":
         return "bg-sky-100 text-sky-600";
 
       case "completed":
         return "bg-green-100 text-green-600";
-
-      case "active":
-        return "bg-sky-100 text-sky-600";
 
       case "archived":
         return "bg-slate-100 text-slate-500";
@@ -273,21 +317,15 @@ function ProjectDetails() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-sky-50 px-6">
         <div className="w-full max-w-lg rounded-3xl bg-white p-8 text-center shadow-xl">
-
-          <div className="text-6xl">
-            😔
-          </div>
+          <div className="text-6xl">😔</div>
 
           <h2 className="mt-4 text-2xl font-bold text-slate-800">
             Something went wrong
           </h2>
 
-          <p className="mt-3 text-slate-500">
-            {error}
-          </p>
+          <p className="mt-3 text-slate-500">{error}</p>
 
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
-
             <button
               type="button"
               onClick={goToDashboard}
@@ -303,9 +341,7 @@ function ProjectDetails() {
             >
               Try Again
             </button>
-
           </div>
-
         </div>
       </div>
     );
@@ -315,10 +351,7 @@ function ProjectDetails() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-sky-50 px-6">
         <div className="w-full max-w-lg rounded-3xl bg-white p-8 text-center shadow-xl">
-
-          <div className="text-6xl">
-            📁
-          </div>
+          <div className="text-6xl">📁</div>
 
           <h2 className="mt-4 text-2xl font-bold text-slate-800">
             Project not found
@@ -335,7 +368,6 @@ function ProjectDetails() {
           >
             ← Back to Dashboard
           </button>
-
         </div>
       </div>
     );
@@ -345,18 +377,15 @@ function ProjectDetails() {
     <div className="min-h-screen bg-sky-50">
 
       {/* Navbar */}
-      <header className="border-b border-sky-100 bg-white">
 
+      <header className="border-b border-sky-100 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
 
           <div className="flex items-center gap-3">
 
-            <span className="text-4xl">
-              🐧
-            </span>
+            <span className="text-4xl">🐧</span>
 
             <div>
-
               <h1 className="text-xl font-extrabold text-slate-800">
                 TaskFlow{" "}
                 <span className="text-sky-500">
@@ -367,7 +396,6 @@ function ProjectDetails() {
               <p className="text-xs text-slate-400">
                 Your productivity companion
               </p>
-
             </div>
 
           </div>
@@ -381,13 +409,12 @@ function ProjectDetails() {
           </button>
 
         </div>
-
       </header>
 
       {/* Main */}
+
       <main className="mx-auto max-w-6xl px-6 py-10">
 
-        {/* Back */}
         <button
           type="button"
           onClick={goToDashboard}
@@ -397,9 +424,9 @@ function ProjectDetails() {
         </button>
 
         {/* Project Card */}
+
         <div className="rounded-3xl bg-white p-8 shadow-xl">
 
-          {/* Project Header */}
           <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
 
             <div className="flex items-start gap-4">
@@ -437,6 +464,7 @@ function ProjectDetails() {
           </div>
 
           {/* Description */}
+
           <div className="mt-10">
 
             <h3 className="text-lg font-bold text-slate-800">
@@ -455,6 +483,7 @@ function ProjectDetails() {
           </div>
 
           {/* Information */}
+
           <div className="mt-8 grid gap-5 sm:grid-cols-2">
 
             <div className="rounded-2xl bg-sky-50 p-5">
@@ -484,12 +513,14 @@ function ProjectDetails() {
           </div>
 
           {/* Project Actions */}
+
           <div className="mt-8 flex flex-col gap-3 border-t border-slate-100 pt-8 sm:flex-row">
 
             <button
               type="button"
               onClick={goToEditProject}
-              className="w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-6 py-3 font-bold text-slate-600 transition hover:bg-slate-50 sm:w-auto"
+              disabled={deletingProject}
+              className="w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-6 py-3 font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
             >
               ✏️ Edit Project
             </button>
@@ -497,9 +528,21 @@ function ProjectDetails() {
             <button
               type="button"
               onClick={goToCreateTask}
-              className="w-full cursor-pointer rounded-xl bg-sky-500 px-6 py-3 font-bold text-white shadow-lg shadow-sky-200 transition hover:bg-sky-600 sm:w-auto"
+              disabled={deletingProject}
+              className="w-full cursor-pointer rounded-xl bg-sky-500 px-6 py-3 font-bold text-white shadow-lg shadow-sky-200 transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
             >
               + New Task 🐧
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDeleteProject}
+              disabled={deletingProject}
+              className="w-full cursor-pointer rounded-xl border border-red-200 bg-red-50 px-6 py-3 font-bold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+            >
+              {deletingProject
+                ? "Deleting Project..."
+                : "🗑️ Delete Project"}
             </button>
 
           </div>
@@ -507,9 +550,9 @@ function ProjectDetails() {
         </div>
 
         {/* Tasks Section */}
+
         <div className="mt-8 rounded-3xl bg-white p-8 shadow-xl">
 
-          {/* Header */}
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 
             <div>
@@ -531,7 +574,8 @@ function ProjectDetails() {
             <button
               type="button"
               onClick={goToCreateTask}
-              className="cursor-pointer rounded-xl bg-sky-500 px-5 py-3 font-bold text-white shadow-lg shadow-sky-200 transition hover:bg-sky-600"
+              disabled={deletingProject}
+              className="cursor-pointer rounded-xl bg-sky-500 px-5 py-3 font-bold text-white shadow-lg shadow-sky-200 transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-50"
             >
               + New Task
             </button>
@@ -539,6 +583,7 @@ function ProjectDetails() {
           </div>
 
           {/* Task Error */}
+
           {taskError && (
             <div className="mt-6 rounded-2xl bg-red-50 px-5 py-4 text-sm font-semibold text-red-600">
               {taskError}
@@ -546,12 +591,11 @@ function ProjectDetails() {
           )}
 
           {/* Task Loading */}
+
           {tasksLoading && (
             <div className="mt-10 text-center">
 
-              <div className="text-5xl">
-                🐧
-              </div>
+              <div className="text-5xl">🐧</div>
 
               <p className="mt-3 text-sm font-semibold text-slate-500">
                 Pengu is fetching your tasks...
@@ -561,14 +605,13 @@ function ProjectDetails() {
           )}
 
           {/* Empty */}
+
           {!tasksLoading &&
             tasks.length === 0 &&
             !taskError && (
               <div className="mt-10 rounded-2xl border-2 border-dashed border-sky-100 bg-sky-50/50 p-12 text-center">
 
-                <div className="text-6xl">
-                  📋
-                </div>
+                <div className="text-6xl">📋</div>
 
                 <h4 className="mt-4 text-xl font-bold text-slate-700">
                   No tasks yet
@@ -582,7 +625,8 @@ function ProjectDetails() {
                 <button
                   type="button"
                   onClick={goToCreateTask}
-                  className="mt-6 cursor-pointer rounded-xl bg-sky-500 px-6 py-3 font-bold text-white transition hover:bg-sky-600"
+                  disabled={deletingProject}
+                  className="mt-6 cursor-pointer rounded-xl bg-sky-500 px-6 py-3 font-bold text-white transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Create First Task 🐧
                 </button>
@@ -591,6 +635,7 @@ function ProjectDetails() {
             )}
 
           {/* Tasks */}
+
           {!tasksLoading && tasks.length > 0 && (
             <div className="mt-8 space-y-4">
 
@@ -602,6 +647,7 @@ function ProjectDetails() {
                 >
 
                   {/* Task Header */}
+
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 
                     <div className="min-w-0">
@@ -622,41 +668,37 @@ function ProjectDetails() {
                         task.status
                       )}`}
                     >
-                      {task.status.replace(
-                        "_",
-                        " "
-                      )}
+                      {task.status}
                     </span>
 
                   </div>
 
                   {/* Task Information */}
+
                   <div className="mt-5 flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
 
                     <div className="flex flex-wrap gap-4 text-xs font-medium text-slate-400">
 
                       <span>
-                        📅 Due:{" "}
-                        {formatDate(task.due_date)}
+                        📅 Due: {formatDate(task.due_date)}
                       </span>
 
                       <span>
-                        Created:{" "}
-                        {formatDate(task.created_at)}
+                        Created: {formatDate(task.created_at)}
                       </span>
 
                     </div>
 
                     {/* Task Actions */}
+
                     <div className="flex flex-wrap gap-2">
 
                       <button
                         type="button"
-                        onClick={() =>
-                          goToEditTask(task.id)
-                        }
+                        onClick={() => goToEditTask(task.id)}
                         disabled={
-                          deletingTaskId === task.id
+                          deletingTaskId === task.id ||
+                          deletingProject
                         }
                         className="cursor-pointer rounded-lg border border-sky-200 bg-white px-4 py-2 text-sm font-bold text-sky-600 transition hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50"
                       >
@@ -669,7 +711,8 @@ function ProjectDetails() {
                           handleDeleteTask(task.id)
                         }
                         disabled={
-                          deletingTaskId === task.id
+                          deletingTaskId === task.id ||
+                          deletingProject
                         }
                         className="cursor-pointer rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-bold text-red-500 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
                       >
@@ -692,7 +735,6 @@ function ProjectDetails() {
         </div>
 
       </main>
-
     </div>
   );
 }

@@ -8,7 +8,7 @@ function CreateTask() {
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [status, setStatus] = useState("pending");
+  const [status, setStatus] = useState("active");
   const [dueDate, setDueDate] = useState("");
 
   const [loading, setLoading] = useState(false);
@@ -23,7 +23,7 @@ function CreateTask() {
     navigate(`/projects/${projectId}`);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     setError("");
@@ -45,8 +45,8 @@ function CreateTask() {
       return;
     }
 
-    if (!title.trim()) {
-      setError("Task title is required.");
+    if (title.trim().length < 3) {
+      setError("Task title must be at least 3 characters.");
       return;
     }
 
@@ -55,10 +55,6 @@ function CreateTask() {
 
       const projectID = Number(projectId);
 
-      console.log("Creating task");
-      console.log("Project ID:", projectID);
-      console.log("Status:", status);
-
       const response = await api.post(
         `/projects/${projectID}/tasks`,
         {
@@ -66,9 +62,7 @@ function CreateTask() {
           title: title.trim(),
           description: description.trim(),
           status,
-          due_date: dueDate
-            ? new Date(dueDate).toISOString()
-            : null,
+          due_date: dueDate || null,
         },
         {
           headers: {
@@ -82,10 +76,7 @@ function CreateTask() {
       navigate(`/projects/${projectID}`);
     } catch (error: any) {
       console.error("Create task error:", error);
-      console.error(
-        "Backend response:",
-        error.response?.data
-      );
+      console.error("Backend response:", error.response?.data);
 
       if (error.response?.status === 401) {
         localStorage.removeItem("token");
@@ -110,7 +101,6 @@ function CreateTask() {
 
       <div className="mx-auto max-w-3xl">
 
-        {/* Back */}
         <button
           type="button"
           onClick={goToProject}
@@ -119,10 +109,8 @@ function CreateTask() {
           ← Back to Project
         </button>
 
-        {/* Card */}
         <div className="rounded-3xl bg-white p-8 shadow-xl">
 
-          {/* Header */}
           <div className="mb-8 flex items-center gap-4">
 
             <div className="text-6xl">
@@ -145,20 +133,17 @@ function CreateTask() {
 
           </div>
 
-          {/* Error */}
           {error && (
             <div className="mb-6 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
               {error}
             </div>
           )}
 
-          {/* Form */}
           <form
             onSubmit={handleSubmit}
             className="space-y-6"
           >
 
-            {/* Title */}
             <div>
               <label
                 htmlFor="title"
@@ -174,10 +159,10 @@ function CreateTask() {
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g. Design login page"
                 className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
+                required
               />
             </div>
 
-            {/* Description */}
             <div>
               <label
                 htmlFor="description"
@@ -196,7 +181,6 @@ function CreateTask() {
               />
             </div>
 
-            {/* Status */}
             <div>
               <label
                 htmlFor="status"
@@ -211,21 +195,20 @@ function CreateTask() {
                 onChange={(e) => setStatus(e.target.value)}
                 className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-slate-800 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
               >
-                <option value="pending">
-                  Pending
-                </option>
-
-                <option value="in_progress">
-                  In Progress
+                <option value="active">
+                  Active
                 </option>
 
                 <option value="completed">
                   Completed
                 </option>
+
+                <option value="archived">
+                  Archived
+                </option>
               </select>
             </div>
 
-            {/* Due Date */}
             <div>
               <label
                 htmlFor="dueDate"
@@ -236,10 +219,10 @@ function CreateTask() {
 
               <input
                 id="dueDate"
-                type="datetime-local"
+                type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-slate-800 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
               />
 
               <p className="mt-2 text-xs text-slate-400">
@@ -247,13 +230,13 @@ function CreateTask() {
               </p>
             </div>
 
-            {/* Buttons */}
-            <div className="flex flex-col gap-3 pt-4 sm:flex-row">
+            <div className="flex flex-col gap-3 border-t border-slate-100 pt-6 sm:flex-row">
 
               <button
                 type="button"
                 onClick={goToProject}
-                className="w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-5 py-3.5 font-bold text-slate-600 transition hover:bg-slate-50 sm:w-auto"
+                disabled={loading}
+                className="w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-5 py-3.5 font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
               >
                 Cancel
               </button>
