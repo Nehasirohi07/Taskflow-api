@@ -5,6 +5,7 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import CreateProject from "./pages/CreateProject";
 import ProjectDetails from "./pages/ProjectDetails";
+import EditProject from "./pages/EditProject";
 
 function App() {
   return (
@@ -38,6 +39,12 @@ function App() {
         <Route
           path="/projects/:id"
           element={<ProjectDetails />}
+        />
+
+        {/* Edit Project */}
+        <Route
+          path="/projects/:id/edit"
+          element={<EditProject />}
         />
 
         {/* Default route */}
