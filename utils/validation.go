@@ -14,7 +14,7 @@ func ValidateRegister(register models.RegisterRequest) error {
 		return errors.New("Name is required")
 	}
 
-	if len(register.Name) < 3 {
+	if len(strings.TrimSpace(register.Name)) < 3 {
 		return errors.New("Name must be at least 3 characters")
 	}
 
@@ -36,7 +36,6 @@ func ValidateRegister(register models.RegisterRequest) error {
 	}
 
 	return nil
-
 }
 
 func ValidateLogin(login models.LoginRequest) error {
@@ -67,7 +66,7 @@ func ValidateProject(project models.ProjectRequest) error {
 		return errors.New("Title is required")
 	}
 
-	if len(project.Title) < 3 {
+	if len(strings.TrimSpace(project.Title)) < 3 {
 		return errors.New("Title must be at least 3 characters")
 	}
 
@@ -88,9 +87,9 @@ func ValidateTask(task models.TaskRequest) error {
 		return errors.New("Title must be atleast 3 characters")
 	}
 
-	if task.Status != "pending" &&
-		task.Status != "in_progress" &&
-		task.Status != "completed" {
+	if task.Status != "active" &&
+		task.Status != "completed" &&
+		task.Status != "archived" {
 		return errors.New("Invalid status")
 	}
 

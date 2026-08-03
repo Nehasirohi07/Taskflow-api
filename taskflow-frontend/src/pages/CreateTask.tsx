@@ -4,15 +4,24 @@ import api from "../services/api";
 
 function CreateTask() {
   const navigate = useNavigate();
-  const { id } = useParams();
+  const { id: projectId } = useParams<{ id: string }>();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [status, setStatus] = useState("active");
+  const [status, setStatus] = useState("pending");
   const [dueDate, setDueDate] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const goToProject = () => {
+    if (!projectId) {
+      navigate("/dashboard");
+      return;
+    }
+
+    navigate(`/projects/${projectId}`);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,7 +35,12 @@ function CreateTask() {
       return;
     }
 
-    if (!id) {
+    if (!projectId) {
+      setError("Project ID is missing.");
+      return;
+    }
+
+    if (!/^\d+$/.test(projectId)) {
       setError("Invalid project ID.");
       return;
     }
@@ -39,9 +53,16 @@ function CreateTask() {
     try {
       setLoading(true);
 
+      const projectID = Number(projectId);
+
+      console.log("Creating task");
+      console.log("Project ID:", projectID);
+      console.log("Status:", status);
+
       const response = await api.post(
-        `/projects/${id}/tasks`,
+        `/projects/${projectID}/tasks`,
         {
+          project_id: projectID,
           title: title.trim(),
           description: description.trim(),
           status,
@@ -58,9 +79,13 @@ function CreateTask() {
 
       console.log("Task created:", response.data);
 
-      navigate(`/projects/${id}`);
+      navigate(`/projects/${projectID}`);
     } catch (error: any) {
       console.error("Create task error:", error);
+      console.error(
+        "Backend response:",
+        error.response?.data
+      );
 
       if (error.response?.status === 401) {
         localStorage.removeItem("token");
@@ -72,6 +97,7 @@ function CreateTask() {
 
       setError(
         error.response?.data?.message ||
+          error.response?.data?.error ||
           "Failed to create task."
       );
     } finally {
@@ -86,8 +112,9 @@ function CreateTask() {
 
         {/* Back */}
         <button
-          onClick={() => navigate(`/projects/${id}`)}
-          className="mb-6 font-semibold text-sky-600 hover:text-sky-700"
+          type="button"
+          onClick={goToProject}
+          className="mb-6 cursor-pointer font-semibold text-sky-600 hover:text-sky-700"
         >
           ← Back to Project
         </button>
@@ -103,7 +130,6 @@ function CreateTask() {
             </div>
 
             <div>
-
               <p className="text-sm font-bold uppercase tracking-widest text-sky-500">
                 TaskFlow Pengu
               </p>
@@ -115,7 +141,6 @@ function CreateTask() {
               <p className="mt-1 text-slate-500">
                 Add a task to your project and keep your work organized.
               </p>
-
             </div>
 
           </div>
@@ -135,7 +160,6 @@ function CreateTask() {
 
             {/* Title */}
             <div>
-
               <label
                 htmlFor="title"
                 className="mb-2 block text-sm font-semibold text-slate-700"
@@ -151,12 +175,10 @@ function CreateTask() {
                 placeholder="e.g. Design login page"
                 className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
               />
-
             </div>
 
             {/* Description */}
             <div>
-
               <label
                 htmlFor="description"
                 className="mb-2 block text-sm font-semibold text-slate-700"
@@ -172,12 +194,10 @@ function CreateTask() {
                 rows={5}
                 className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
               />
-
             </div>
 
             {/* Status */}
             <div>
-
               <label
                 htmlFor="status"
                 className="mb-2 block text-sm font-semibold text-slate-700"
@@ -191,26 +211,22 @@ function CreateTask() {
                 onChange={(e) => setStatus(e.target.value)}
                 className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-slate-800 outline-none transition focus:border-sky-400 focus:bg-white focus:ring-4 focus:ring-sky-100"
               >
+                <option value="pending">
+                  Pending
+                </option>
 
-                <option value="active">
-                  Active
+                <option value="in_progress">
+                  In Progress
                 </option>
 
                 <option value="completed">
                   Completed
                 </option>
-
-                <option value="archived">
-                  Archived
-                </option>
-
               </select>
-
             </div>
 
             {/* Due Date */}
             <div>
-
               <label
                 htmlFor="dueDate"
                 className="mb-2 block text-sm font-semibold text-slate-700"
@@ -229,7 +245,6 @@ function CreateTask() {
               <p className="mt-2 text-xs text-slate-400">
                 You can leave this empty if the task has no deadline.
               </p>
-
             </div>
 
             {/* Buttons */}
@@ -237,16 +252,16 @@ function CreateTask() {
 
               <button
                 type="button"
-                onClick={() => navigate(`/projects/${id}`)}
-                className="w-full rounded-xl border border-slate-200 bg-white px-5 py-3.5 font-bold text-slate-600 transition hover:bg-slate-50 sm:w-auto"
+                onClick={goToProject}
+                className="w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-5 py-3.5 font-bold text-slate-600 transition hover:bg-slate-50 sm:w-auto"
               >
                 Cancel
               </button>
 
               <button
                 type="submit"
-                disabled={loading}
-                className="w-full rounded-xl bg-sky-500 px-5 py-3.5 font-bold text-white shadow-lg shadow-sky-200 transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-60 sm:flex-1"
+                disabled={loading || !projectId}
+                className="w-full cursor-pointer rounded-xl bg-sky-500 px-5 py-3.5 font-bold text-white shadow-lg shadow-sky-200 transition hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-60 sm:flex-1"
               >
                 {loading
                   ? "Creating task..."

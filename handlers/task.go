@@ -3,7 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"taskflow-api/database"
@@ -30,24 +30,6 @@ import (
 // @Router /projects/{id}/tasks [post]
 func CreateTask(w http.ResponseWriter, r *http.Request) {
 
-	var task models.TaskRequest
-
-	err := json.NewDecoder(r.Body).Decode(&task)
-
-	if err != nil {
-		utils.SendError(w, http.StatusBadRequest, "Invalid request body")
-		return
-	}
-
-	task = utils.SanitizeTask(task)
-
-	err = utils.ValidateTask(task)
-
-	if err != nil {
-		utils.SendError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
 	userID, ok := r.Context().Value("userID").(int)
 
 	if !ok {
@@ -55,29 +37,53 @@ func CreateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get project ID from URL
 	vars := mux.Vars(r)
 
 	idStr := vars["id"]
 
-	fmt.Println("Task Route Vars:", vars)
+	projectID, err := strconv.Atoi(idStr)
 
-	id, err := strconv.Atoi(idStr)
-
-	if err != nil {
+	if err != nil || projectID <= 0 {
 		utils.SendError(w, http.StatusBadRequest, "Invalid project ID")
 		return
 	}
 
-	var projectID int
+	// Decode request body
+	var task models.TaskRequest
+
+	err = json.NewDecoder(r.Body).Decode(&task)
+
+	if err != nil {
+		utils.SendError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	// Always use the project ID from the URL
+	task.ProjectID = projectID
+
+	// Sanitize
+	task = utils.SanitizeTask(task)
+
+	// Validate
+	err = utils.ValidateTask(task)
+
+	if err != nil {
+		utils.SendError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// Verify that project belongs to logged-in user
+	var existingProjectID int
 
 	err = database.DB.QueryRow(
 		`SELECT id
-		FROM projects
-		WHERE ID = ?
-		AND user_id = ?`,
-		id,
+		 FROM projects
+		 WHERE id = ?
+		 AND user_id = ?`,
+		projectID,
 		userID,
-	).Scan(&projectID)
+	).Scan(&existingProjectID)
 
 	if err == sql.ErrNoRows {
 		utils.SendError(w, http.StatusNotFound, "Project not found")
@@ -88,11 +94,13 @@ func CreateTask(w http.ResponseWriter, r *http.Request) {
 		utils.SendError(w, http.StatusInternalServerError, "Database error")
 		return
 	}
-	_, err = database.DB.Exec(
+
+	// Create task
+	result, err := database.DB.Exec(
 		`INSERT INTO tasks
 		(project_id, title, description, status, due_date)
-		VALUES (? , ? , ? , ?, ?)`,
-		id,
+		VALUES (?, ?, ?, ?, ?)`,
+		projectID,
 		task.Title,
 		task.Description,
 		task.Status,
@@ -100,7 +108,47 @@ func CreateTask(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err != nil {
-		utils.SendError(w, http.StatusInternalServerError, "Database error")
+		log.Println("CREATE TASK DATABASE ERROR:", err)
+		utils.SendError(w, http.StatusInternalServerError, "Failed to create task")
+		return
+	}
+
+	taskID, err := result.LastInsertId()
+
+	if err != nil {
+		utils.SendError(w, http.StatusInternalServerError, "Failed to get task ID")
+		return
+	}
+
+	// Fetch created task
+	var response models.TaskResponse
+
+	err = database.DB.QueryRow(
+		`SELECT
+			id,
+			project_id,
+			title,
+			description,
+			status,
+			due_date,
+			created_at,
+			updated_at
+		 FROM tasks
+		 WHERE id = ?`,
+		taskID,
+	).Scan(
+		&response.ID,
+		&response.ProjectID,
+		&response.Title,
+		&response.Description,
+		&response.Status,
+		&response.DueDate,
+		&response.CreatedAt,
+		&response.UpdatedAt,
+	)
+
+	if err != nil {
+		utils.SendError(w, http.StatusInternalServerError, "Failed to fetch created task")
 		return
 	}
 
@@ -108,7 +156,7 @@ func CreateTask(w http.ResponseWriter, r *http.Request) {
 		w,
 		http.StatusCreated,
 		"Task created successfully",
-		task,
+		response,
 	)
 }
 
@@ -120,6 +168,7 @@ func CreateTask(w http.ResponseWriter, r *http.Request) {
 // @Security BearerAuth
 // @Param id path int true "Project ID"
 // @Success 200 {object} utils.Response
+// @Failure 400 {object} utils.Response
 // @Failure 401 {object} utils.Response
 // @Failure 404 {object} utils.Response
 // @Failure 500 {object} utils.Response
@@ -137,45 +186,48 @@ func GetTasks(w http.ResponseWriter, r *http.Request) {
 
 	idStr := vars["id"]
 
-	id, err := strconv.Atoi(idStr)
+	projectID, err := strconv.Atoi(idStr)
 
-	if err != nil {
+	if err != nil || projectID <= 0 {
 		utils.SendError(w, http.StatusBadRequest, "Invalid project ID")
 		return
 	}
 
-	var projectID int
+	// Verify project ownership
+	var existingProjectID int
 
 	err = database.DB.QueryRow(
 		`SELECT id
-		FROM projects
-		WHERE id = ?
-		AND user_id = ?`,
-		id,
+		 FROM projects
+		 WHERE id = ?
+		 AND user_id = ?`,
+		projectID,
 		userID,
-	).Scan(&projectID)
+	).Scan(&existingProjectID)
 
 	if err == sql.ErrNoRows {
-		utils.SendError(w, http.StatusNotFound, "task not found")
+		utils.SendError(w, http.StatusNotFound, "Project not found")
 		return
 	}
+
 	if err != nil {
 		utils.SendError(w, http.StatusInternalServerError, "Database error")
 		return
 	}
 
 	rows, err := database.DB.Query(
-		`SELECT 
-		id,
-		project_id,
-		title,
-		description,
-		status,
-		due_date,
-		created_at
-		FROM tasks
-		WHERE project_id = ?
-		ORDER BY created_at DESC`,
+		`SELECT
+			id,
+			project_id,
+			title,
+			description,
+			status,
+			due_date,
+			created_at,
+			updated_at
+		 FROM tasks
+		 WHERE project_id = ?
+		 ORDER BY created_at DESC`,
 		projectID,
 	)
 
@@ -186,20 +238,21 @@ func GetTasks(w http.ResponseWriter, r *http.Request) {
 
 	defer rows.Close()
 
-	var tasks []models.TaskResponse
+	tasks := make([]models.TaskResponse, 0)
 
 	for rows.Next() {
 
-		var taskresponse models.TaskResponse
+		var task models.TaskResponse
 
 		err := rows.Scan(
-			&taskresponse.ID,
-			&taskresponse.ProjectID,
-			&taskresponse.Title,
-			&taskresponse.Description,
-			&taskresponse.Status,
-			&taskresponse.DueDate,
-			&taskresponse.CreatedAt,
+			&task.ID,
+			&task.ProjectID,
+			&task.Title,
+			&task.Description,
+			&task.Status,
+			&task.DueDate,
+			&task.CreatedAt,
+			&task.UpdatedAt,
 		)
 
 		if err != nil {
@@ -207,8 +260,7 @@ func GetTasks(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		tasks = append(tasks, taskresponse)
-
+		tasks = append(tasks, task)
 	}
 
 	if err := rows.Err(); err != nil {
@@ -222,7 +274,6 @@ func GetTasks(w http.ResponseWriter, r *http.Request) {
 		"Tasks fetched successfully",
 		tasks,
 	)
-
 }
 
 // GetTaskByID godoc
@@ -251,9 +302,9 @@ func GetTaskByID(w http.ResponseWriter, r *http.Request) {
 
 	idStr := vars["id"]
 
-	id, err := strconv.Atoi(idStr)
+	taskID, err := strconv.Atoi(idStr)
 
-	if err != nil {
+	if err != nil || taskID <= 0 {
 		utils.SendError(w, http.StatusBadRequest, "Invalid task ID")
 		return
 	}
@@ -262,19 +313,20 @@ func GetTaskByID(w http.ResponseWriter, r *http.Request) {
 
 	err = database.DB.QueryRow(
 		`SELECT
-		 	t.id,
-	     	t.project_id,
-		 	t.title,
-		 	t.description,
-		 	t.status,
+			t.id,
+			t.project_id,
+			t.title,
+			t.description,
+			t.status,
 			t.due_date,
-			t.created_at
+			t.created_at,
+			t.updated_at
 		 FROM tasks t
 		 JOIN projects p
-		 	ON t.project_id = p.id
-		WHERE t.id = ? 
-		AND p.user_id = ?`,
-		id,
+			ON t.project_id = p.id
+		 WHERE t.id = ?
+		 AND p.user_id = ?`,
+		taskID,
 		userID,
 	).Scan(
 		&task.ID,
@@ -284,6 +336,7 @@ func GetTaskByID(w http.ResponseWriter, r *http.Request) {
 		&task.Status,
 		&task.DueDate,
 		&task.CreatedAt,
+		&task.UpdatedAt,
 	)
 
 	if err == sql.ErrNoRows {
@@ -302,7 +355,6 @@ func GetTaskByID(w http.ResponseWriter, r *http.Request) {
 		"Task fetched successfully",
 		task,
 	)
-
 }
 
 // UpdateTask godoc
@@ -311,7 +363,7 @@ func GetTaskByID(w http.ResponseWriter, r *http.Request) {
 // @Tags Tasks
 // @Accept json
 // @Produce json
-// @security BearerAuth
+// @Security BearerAuth
 // @Param id path int true "Task ID"
 // @Param task body models.TaskRequest true "Update Task"
 // @Success 200 {object} utils.Response
@@ -321,25 +373,6 @@ func GetTaskByID(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} utils.Response
 // @Router /tasks/{id} [put]
 func UpdateTask(w http.ResponseWriter, r *http.Request) {
-
-	var taskrequest models.TaskRequest
-
-	err := json.NewDecoder(r.Body).Decode(&taskrequest)
-
-	if err != nil {
-		utils.SendError(w, http.StatusBadRequest, "Invalid request body")
-		return
-	}
-
-	taskrequest = utils.SanitizeTask(taskrequest)
-
-	err = utils.ValidateTask(taskrequest)
-
-	if err != nil {
-		utils.SendError(w, http.StatusBadRequest, err.Error())
-		return
-
-	}
 
 	userID, ok := r.Context().Value("userID").(int)
 
@@ -352,25 +385,44 @@ func UpdateTask(w http.ResponseWriter, r *http.Request) {
 
 	idStr := vars["id"]
 
-	id, err := strconv.Atoi(idStr)
+	taskID, err := strconv.Atoi(idStr)
 
-	if err != nil {
+	if err != nil || taskID <= 0 {
 		utils.SendError(w, http.StatusBadRequest, "Invalid task ID")
 		return
 	}
 
-	var taskID int
+	var taskRequest models.TaskRequest
+
+	err = json.NewDecoder(r.Body).Decode(&taskRequest)
+
+	if err != nil {
+		utils.SendError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	taskRequest = utils.SanitizeTask(taskRequest)
+
+	err = utils.ValidateTask(taskRequest)
+
+	if err != nil {
+		utils.SendError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// Verify task belongs to user's project
+	var existingTaskID int
 
 	err = database.DB.QueryRow(
 		`SELECT t.id
-		FROM tasks t
-		JOIN projects p
-		ON t.project_id = p.id
-		WHERE t.id = ?
-		AND p.user_id = ?`,
-		id,
+		 FROM tasks t
+		 JOIN projects p
+			ON t.project_id = p.id
+		 WHERE t.id = ?
+		 AND p.user_id = ?`,
+		taskID,
 		userID,
-	).Scan(&taskID)
+	).Scan(&existingTaskID)
 
 	if err == sql.ErrNoRows {
 		utils.SendError(w, http.StatusNotFound, "Task not found")
@@ -382,36 +434,24 @@ func UpdateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := database.DB.Exec(
+	_, err = database.DB.Exec(
 		`UPDATE tasks
-		SET
-		title = ?,
-		description = ?,
-		status = ?,
-		due_date = ?,
-		updated_at = NOW()
-		WHERE id = ?`,
-		taskrequest.Title,
-		taskrequest.Description,
-		taskrequest.Status,
-		taskrequest.DueDate,
-		id,
+		 SET
+			title = ?,
+			description = ?,
+			status = ?,
+			due_date = ?,
+			updated_at = NOW()
+		 WHERE id = ?`,
+		taskRequest.Title,
+		taskRequest.Description,
+		taskRequest.Status,
+		taskRequest.DueDate,
+		taskID,
 	)
 
 	if err != nil {
 		utils.SendError(w, http.StatusInternalServerError, "Failed to update task")
-		return
-	}
-
-	affectedRows, err := result.RowsAffected()
-
-	if err != nil {
-		utils.SendError(w, http.StatusInternalServerError, "Database error")
-		return
-	}
-
-	if affectedRows == 0 {
-		utils.SendError(w, http.StatusNotFound, "no record affected")
 		return
 	}
 
@@ -421,7 +461,6 @@ func UpdateTask(w http.ResponseWriter, r *http.Request) {
 		"Task updated successfully",
 		nil,
 	)
-
 }
 
 // DeleteTask godoc
@@ -450,25 +489,26 @@ func DeleteTask(w http.ResponseWriter, r *http.Request) {
 
 	idStr := vars["id"]
 
-	id, err := strconv.Atoi(idStr)
+	taskID, err := strconv.Atoi(idStr)
 
-	if err != nil {
+	if err != nil || taskID <= 0 {
 		utils.SendError(w, http.StatusBadRequest, "Invalid task ID")
 		return
 	}
 
-	var TaskexistID int
+	// Verify task belongs to user's project
+	var existingTaskID int
 
 	err = database.DB.QueryRow(
 		`SELECT t.id
-		FROM tasks t
-		JOIN projects p
-		ON t.project_id = p.id
-		WHERE t.id = ?
-		AND p.user_id = ?`,
-		id,
+		 FROM tasks t
+		 JOIN projects p
+			ON t.project_id = p.id
+		 WHERE t.id = ?
+		 AND p.user_id = ?`,
+		taskID,
 		userID,
-	).Scan(&TaskexistID)
+	).Scan(&existingTaskID)
 
 	if err == sql.ErrNoRows {
 		utils.SendError(w, http.StatusNotFound, "Task not found")
@@ -480,26 +520,14 @@ func DeleteTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := database.DB.Exec(
+	_, err = database.DB.Exec(
 		`DELETE FROM tasks
-		WHERE id = ?`,
-		id,
+		 WHERE id = ?`,
+		taskID,
 	)
 
 	if err != nil {
 		utils.SendError(w, http.StatusInternalServerError, "Failed to delete task")
-		return
-	}
-
-	affectedRows, err := result.RowsAffected()
-
-	if err != nil {
-		utils.SendError(w, http.StatusInternalServerError, "Database error")
-		return
-	}
-
-	if affectedRows == 0 {
-		utils.SendError(w, http.StatusNotFound, "no record affected")
 		return
 	}
 
@@ -509,5 +537,4 @@ func DeleteTask(w http.ResponseWriter, r *http.Request) {
 		"Task deleted successfully",
 		nil,
 	)
-
 }

@@ -7,6 +7,8 @@ import CreateProject from "./pages/CreateProject";
 import ProjectDetails from "./pages/ProjectDetails";
 import EditProject from "./pages/EditProject";
 import CreateTask from "./pages/CreateTask";
+import EditTask from "./pages/EditTask";
+import TaskDetails from "./pages/TaskDetails";
 
 function App() {
   return (
@@ -14,53 +16,39 @@ function App() {
       <Routes>
 
         {/* Authentication */}
-        <Route
-          path="/login"
-          element={<Login />}
-        />
-
-        <Route
-          path="/register"
-          element={<Register />}
-        />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
         {/* Dashboard */}
-        <Route
-          path="/dashboard"
-          element={<Dashboard />}
-        />
+        <Route path="/dashboard" element={<Dashboard />} />
 
-        {/* Create Project */}
-        <Route
-          path="/projects/new"
-          element={<CreateProject />}
-        />
+        {/* Projects */}
+        <Route path="/projects/new" element={<CreateProject />} />
+        <Route path="/projects/:id" element={<ProjectDetails />} />
+        <Route path="/projects/:id/edit" element={<EditProject />} />
 
-        {/* Project Details */}
-        <Route
-          path="/projects/:id"
-          element={<ProjectDetails />}
-        />
-
-        {/* Edit Project */}
-        <Route
-          path="/projects/:id/edit"
-          element={<EditProject />}
-        />
-
-        {/* Create Task */}
+        {/* Tasks */}
         <Route
           path="/projects/:id/tasks/new"
           element={<CreateTask />}
         />
+        <Route
+          path="/tasks/:id"
+          element={<TaskDetails />}
+        />
 
-        {/* Default route */}
+        <Route
+          path="/tasks/:id/edit"
+          element={<EditTask />}
+        />
+
+        {/* Default */}
         <Route
           path="/"
           element={<Navigate to="/login" replace />}
         />
 
-        {/* Unknown routes */}
+        {/* Unknown Route */}
         <Route
           path="*"
           element={<Navigate to="/dashboard" replace />}

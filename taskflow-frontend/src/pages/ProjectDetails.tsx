@@ -25,7 +25,7 @@ interface Task {
 
 function ProjectDetails() {
   const navigate = useNavigate();
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
 
   const [project, setProject] = useState<Project | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -36,6 +36,8 @@ function ProjectDetails() {
   const [error, setError] = useState("");
   const [taskError, setTaskError] = useState("");
 
+  const projectId = id;
+
   useEffect(() => {
     const token = localStorage.getItem("token");
 
@@ -44,35 +46,48 @@ function ProjectDetails() {
       return;
     }
 
-    if (!id) {
-      setError("Invalid project ID.");
+    if (!projectId || !/^\d+$/.test(projectId)) {
+      setError(
+        `Invalid project ID: ${projectId || "missing"}`
+      );
+
       setLoading(false);
+      setTasksLoading(false);
       return;
     }
 
     const fetchProject = async () => {
       try {
-        const response = await api.get(`/projects/${id}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await api.get(
+          `/projects/${projectId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
-        console.log("Project details:", response.data);
+        const projectData =
+          response.data?.data || response.data;
 
-        setProject(response.data.data);
+        setProject(projectData);
       } catch (error: any) {
-        console.error("Project details error:", error);
+        console.error(
+          "Project details error:",
+          error
+        );
 
         if (error.response?.status === 401) {
           localStorage.removeItem("token");
           localStorage.removeItem("user");
+
           navigate("/login");
           return;
         }
 
         setError(
           error.response?.data?.message ||
+            error.response?.data?.error ||
             "Failed to load project."
         );
       } finally {
@@ -83,7 +98,7 @@ function ProjectDetails() {
     const fetchTasks = async () => {
       try {
         const response = await api.get(
-          `/projects/${id}/tasks`,
+          `/projects/${projectId}/tasks`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -91,21 +106,28 @@ function ProjectDetails() {
           }
         );
 
-        console.log("Tasks response:", response.data);
+        const taskData =
+          response.data?.data || response.data;
 
-        setTasks(response.data.data || []);
+        setTasks(
+          Array.isArray(taskData)
+            ? taskData
+            : []
+        );
       } catch (error: any) {
         console.error("Tasks error:", error);
 
         if (error.response?.status === 401) {
           localStorage.removeItem("token");
           localStorage.removeItem("user");
+
           navigate("/login");
           return;
         }
 
         setTaskError(
           error.response?.data?.message ||
+            error.response?.data?.error ||
             "Failed to load tasks."
         );
       } finally {
@@ -115,12 +137,103 @@ function ProjectDetails() {
 
     fetchProject();
     fetchTasks();
-  }, [id, navigate]);
+  }, [projectId, navigate]);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+
+    navigate("/login");
+  };
+
+  const goToDashboard = () => {
+    navigate("/dashboard");
+  };
+
+  const goToCreateTask = () => {
+    if (!projectId) {
+      setError("Project ID is missing.");
+      return;
+    }
+
+    navigate(`/projects/${projectId}/tasks/new`);
+  };
+
+  const goToEditProject = () => {
+    if (!projectId) {
+      setError("Project ID is missing.");
+      return;
+    }
+
+    navigate(`/projects/${projectId}/edit`);
+  };
+
+  const goToEditTask = (taskId: number) => {
+    navigate(`/tasks/${taskId}/edit`);
+  };
+
+  const handleDeleteTask = async (taskId: number) => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this task?"
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setTaskError("");
+
+      await api.delete(`/tasks/${taskId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      setTasks((previousTasks) =>
+        previousTasks.filter(
+          (task) => task.id !== taskId
+        )
+      );
+    } catch (error: any) {
+      console.error(
+        "Delete task error:",
+        error
+      );
+
+      if (error.response?.status === 401) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+
+        navigate("/login");
+        return;
+      }
+
+      setTaskError(
+        error.response?.data?.message ||
+          error.response?.data?.error ||
+          "Failed to delete task."
+      );
+    }
+  };
 
   const getStatusClasses = (status: string) => {
-    switch (status.toLowerCase()) {
+    switch (status?.toLowerCase()) {
       case "active":
         return "bg-sky-100 text-sky-600";
+
+      case "pending":
+        return "bg-yellow-100 text-yellow-700";
+
+      case "in_progress":
+        return "bg-blue-100 text-blue-700";
 
       case "completed":
         return "bg-green-100 text-green-600";
@@ -135,21 +248,35 @@ function ProjectDetails() {
 
   const formatDate = (date: string | null) => {
     if (!date) {
-      return "No due date";
+      return "No date";
     }
 
-    return new Date(date).toLocaleDateString("en-IN", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
+    const parsedDate = new Date(date);
+
+    if (isNaN(parsedDate.getTime())) {
+      return "No date";
+    }
+
+    return parsedDate.toLocaleDateString(
+      "en-IN",
+      {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      }
+    );
   };
 
+  /*
+   * Loading
+   */
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-sky-50">
         <div className="text-center">
-          <div className="text-7xl">🐧</div>
+          <div className="text-7xl">
+            🐧
+          </div>
 
           <p className="mt-4 font-semibold text-slate-600">
             Pengu is loading your project...
@@ -159,12 +286,17 @@ function ProjectDetails() {
     );
   }
 
+  /*
+   * Error
+   */
   if (error) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-sky-50 px-6">
         <div className="w-full max-w-lg rounded-3xl bg-white p-8 text-center shadow-xl">
 
-          <div className="text-6xl">😔</div>
+          <div className="text-6xl">
+            😔
+          </div>
 
           <h2 className="mt-4 text-2xl font-bold text-slate-800">
             Something went wrong
@@ -174,8 +306,56 @@ function ProjectDetails() {
             {error}
           </p>
 
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+
+            <button
+              type="button"
+              onClick={goToDashboard}
+              className="rounded-xl bg-sky-500 px-6 py-3 font-bold text-white transition hover:bg-sky-600"
+            >
+              ← Dashboard
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                window.location.reload()
+              }
+              className="rounded-xl border border-slate-200 bg-white px-6 py-3 font-bold text-slate-600 transition hover:bg-slate-50"
+            >
+              Try Again
+            </button>
+
+          </div>
+
+        </div>
+      </div>
+    );
+  }
+
+  /*
+   * Project not found
+   */
+  if (!project) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-sky-50 px-6">
+        <div className="w-full max-w-lg rounded-3xl bg-white p-8 text-center shadow-xl">
+
+          <div className="text-6xl">
+            📁
+          </div>
+
+          <h2 className="mt-4 text-2xl font-bold text-slate-800">
+            Project not found
+          </h2>
+
+          <p className="mt-3 text-slate-500">
+            We couldn't find this project.
+          </p>
+
           <button
-            onClick={() => navigate("/dashboard")}
+            type="button"
+            onClick={goToDashboard}
             className="mt-6 rounded-xl bg-sky-500 px-6 py-3 font-bold text-white transition hover:bg-sky-600"
           >
             ← Back to Dashboard
@@ -186,15 +366,12 @@ function ProjectDetails() {
     );
   }
 
-  if (!project) {
-    return null;
-  }
-
   return (
     <div className="min-h-screen bg-sky-50">
 
       {/* Navbar */}
       <header className="border-b border-sky-100 bg-white">
+
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
 
           <div className="flex items-center gap-3">
@@ -204,6 +381,7 @@ function ProjectDetails() {
             </span>
 
             <div>
+
               <h1 className="text-xl font-extrabold text-slate-800">
                 TaskFlow{" "}
                 <span className="text-sky-500">
@@ -214,18 +392,21 @@ function ProjectDetails() {
               <p className="text-xs text-slate-400">
                 Your productivity companion
               </p>
+
             </div>
 
           </div>
 
           <button
-            onClick={() => navigate("/dashboard")}
-            className="rounded-xl bg-sky-50 px-4 py-2 text-sm font-bold text-sky-600 transition hover:bg-sky-100"
+            type="button"
+            onClick={handleLogout}
+            className="cursor-pointer rounded-xl bg-sky-50 px-4 py-2 text-sm font-bold text-sky-600 transition hover:bg-sky-100"
           >
-            Dashboard
+            Logout
           </button>
 
         </div>
+
       </header>
 
       {/* Main */}
@@ -233,8 +414,9 @@ function ProjectDetails() {
 
         {/* Back */}
         <button
-          onClick={() => navigate("/dashboard")}
-          className="mb-6 font-semibold text-sky-600 hover:text-sky-700"
+          type="button"
+          onClick={goToDashboard}
+          className="mb-6 cursor-pointer font-semibold text-sky-600 hover:text-sky-700"
         >
           ← Back to Projects
         </button>
@@ -242,7 +424,7 @@ function ProjectDetails() {
         {/* Project Card */}
         <div className="rounded-3xl bg-white p-8 shadow-xl">
 
-          {/* Header */}
+          {/* Project Header */}
           <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
 
             <div className="flex items-start gap-4">
@@ -260,6 +442,10 @@ function ProjectDetails() {
                 <h2 className="mt-1 text-3xl font-extrabold text-slate-800">
                   {project.title}
                 </h2>
+
+                <p className="mt-1 text-xs font-medium text-slate-400">
+                  Project ID: {project.id}
+                </p>
 
               </div>
 
@@ -297,6 +483,7 @@ function ProjectDetails() {
           <div className="mt-8 grid gap-5 sm:grid-cols-2">
 
             <div className="rounded-2xl bg-sky-50 p-5">
+
               <p className="text-sm font-semibold text-slate-400">
                 Created
               </p>
@@ -304,9 +491,11 @@ function ProjectDetails() {
               <p className="mt-2 font-bold text-slate-700">
                 {formatDate(project.created_at)}
               </p>
+
             </div>
 
             <div className="rounded-2xl bg-slate-50 p-5">
+
               <p className="text-sm font-semibold text-slate-400">
                 Last updated
               </p>
@@ -314,7 +503,29 @@ function ProjectDetails() {
               <p className="mt-2 font-bold text-slate-700">
                 {formatDate(project.updated_at)}
               </p>
+
             </div>
+
+          </div>
+
+          {/* Project Actions */}
+          <div className="mt-8 flex flex-col gap-3 border-t border-slate-100 pt-8 sm:flex-row">
+
+            <button
+              type="button"
+              onClick={goToEditProject}
+              className="w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-6 py-3 font-bold text-slate-600 transition hover:bg-slate-50 sm:w-auto"
+            >
+              ✏️ Edit Project
+            </button>
+
+            <button
+              type="button"
+              onClick={goToCreateTask}
+              className="w-full cursor-pointer rounded-xl bg-sky-500 px-6 py-3 font-bold text-white shadow-lg shadow-sky-200 transition hover:bg-sky-600 sm:w-auto"
+            >
+              + New Task 🐧
+            </button>
 
           </div>
 
@@ -323,7 +534,7 @@ function ProjectDetails() {
         {/* Tasks Section */}
         <div className="mt-8 rounded-3xl bg-white p-8 shadow-xl">
 
-          {/* Tasks Header */}
+          {/* Header */}
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 
             <div>
@@ -343,10 +554,9 @@ function ProjectDetails() {
             </div>
 
             <button
-              onClick={() =>
-                navigate(`/projects/${project.id}/tasks/new`)
-              }
-              className="rounded-xl bg-sky-500 px-5 py-3 font-bold text-white shadow-lg shadow-sky-200 transition hover:bg-sky-600"
+              type="button"
+              onClick={goToCreateTask}
+              className="cursor-pointer rounded-xl bg-sky-500 px-5 py-3 font-bold text-white shadow-lg shadow-sky-200 transition hover:bg-sky-600"
             >
               + New Task
             </button>
@@ -375,7 +585,7 @@ function ProjectDetails() {
             </div>
           )}
 
-          {/* Empty Tasks */}
+          {/* Empty */}
           {!tasksLoading &&
             tasks.length === 0 &&
             !taskError && (
@@ -395,12 +605,9 @@ function ProjectDetails() {
                 </p>
 
                 <button
-                  onClick={() =>
-                    navigate(
-                      `/projects/${project.id}/tasks/new`
-                    )
-                  }
-                  className="mt-6 rounded-xl bg-sky-500 px-6 py-3 font-bold text-white transition hover:bg-sky-600"
+                  type="button"
+                  onClick={goToCreateTask}
+                  className="mt-6 cursor-pointer rounded-xl bg-sky-500 px-6 py-3 font-bold text-white transition hover:bg-sky-600"
                 >
                   Create First Task 🐧
                 </button>
@@ -409,70 +616,100 @@ function ProjectDetails() {
             )}
 
           {/* Tasks */}
-          {!tasksLoading && tasks.length > 0 && (
-            <div className="mt-8 space-y-4">
+          {!tasksLoading &&
+            tasks.length > 0 && (
+              <div className="mt-8 space-y-4">
 
-              {tasks.map((task) => (
-                <div
-                  key={task.id}
-                  className="rounded-2xl border border-slate-100 bg-slate-50 p-5 transition hover:shadow-md"
-                >
+                {tasks.map((task) => (
+                  <div
+                    key={task.id}
+                    className="rounded-2xl border border-slate-100 bg-slate-50 p-5 transition hover:shadow-md"
+                  >
 
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    {/* Task Header */}
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 
-                    <div className="min-w-0">
+                      <div className="min-w-0">
 
-                      <h4 className="text-lg font-bold text-slate-800">
-                        {task.title}
-                      </h4>
+                        <h4 className="text-lg font-bold text-slate-800">
+                          {task.title}
+                        </h4>
 
-                      <p className="mt-2 text-sm leading-6 text-slate-500">
-                        {task.description ||
-                          "No description provided."}
-                      </p>
+                        <p className="mt-2 text-sm leading-6 text-slate-500">
+                          {task.description ||
+                            "No description provided."}
+                        </p>
 
-                    </div>
+                      </div>
 
-                    <span
-                      className={`w-fit shrink-0 rounded-full px-3 py-1 text-xs font-bold capitalize ${getStatusClasses(
-                        task.status
-                      )}`}
-                    >
-                      {task.status}
-                    </span>
-
-                  </div>
-
-                  <div className="mt-5 flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
-
-                    <div className="flex flex-wrap gap-4 text-xs font-medium text-slate-400">
-
-                      <span>
-                        📅 Due: {formatDate(task.due_date)}
-                      </span>
-
-                      <span>
-                        Created: {formatDate(task.created_at)}
+                      <span
+                        className={`w-fit shrink-0 rounded-full px-3 py-1 text-xs font-bold capitalize ${getStatusClasses(
+                          task.status
+                        )}`}
+                      >
+                        {task.status.replace(
+                          "_",
+                          " "
+                        )}
                       </span>
 
                     </div>
 
-                    <button
-                      onClick={() =>
-                        navigate(`/tasks/${task.id}`)
-                      }
-                      className="w-fit text-sm font-bold text-sky-500 hover:text-sky-600"
-                    >
-                      View Task →
-                    </button>
+                    {/* Task Footer */}
+                    <div className="mt-5 flex flex-col gap-4 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
+
+                      <div className="flex flex-wrap gap-4 text-xs font-medium text-slate-400">
+
+                        <span>
+                          📅 Due:{" "}
+                          {formatDate(
+                            task.due_date
+                          )}
+                        </span>
+
+                        <span>
+                          Created:{" "}
+                          {formatDate(
+                            task.created_at
+                          )}
+                        </span>
+
+                      </div>
+
+                      {/* Task Actions */}
+                      <div className="flex gap-2">
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            goToEditTask(task.id)
+                          }
+                          className="cursor-pointer rounded-lg bg-sky-100 px-4 py-2 text-sm font-bold text-sky-600 transition hover:bg-sky-200"
+                        >
+                          ✏️ Edit
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleDeleteTask(
+                              task.id
+                            )
+                          }
+                          className="cursor-pointer rounded-lg bg-red-100 px-4 py-2 text-sm font-bold text-red-600 transition hover:bg-red-200"
+                        >
+                          🗑️ Delete
+                        </button>
+
+                      </div>
+
+                    </div>
 
                   </div>
+                ))}
 
-                </div>
-              ))}
-
-            </div>
-          )}
+              </div>
+            )}
 
         </div>
 
