@@ -6,6 +6,7 @@ import Dashboard from "./pages/Dashboard";
 import CreateProject from "./pages/CreateProject";
 import ProjectDetails from "./pages/ProjectDetails";
 import EditProject from "./pages/EditProject";
+import CreateTask from "./pages/CreateTask";
 
 function App() {
   return (
@@ -45,6 +46,12 @@ function App() {
         <Route
           path="/projects/:id/edit"
           element={<EditProject />}
+        />
+
+        {/* Create Task */}
+        <Route
+          path="/projects/:id/tasks/new"
+          element={<CreateTask />}
         />
 
         {/* Default route */}
