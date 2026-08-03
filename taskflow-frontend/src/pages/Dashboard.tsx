@@ -17,14 +17,27 @@ interface User {
   role: string;
 }
 
+interface Project {
+  id: number;
+  user_id: number;
+  title: string;
+  description: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
 function Dashboard() {
   const navigate = useNavigate();
 
   const [user, setUser] = useState<User | null>(null);
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
 
   const [loading, setLoading] = useState(true);
+  const [projectsLoading, setProjectsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [projectError, setProjectError] = useState("");
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -75,7 +88,39 @@ function Dashboard() {
       }
     };
 
+    const fetchProjects = async () => {
+      try {
+        const response = await api.get("/projects", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        console.log("Projects response:", response.data);
+
+        setProjects(response.data.data || []);
+      } catch (error: any) {
+        console.error("Projects error:", error);
+
+        if (error.response?.status === 401) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+
+          navigate("/login");
+          return;
+        }
+
+        setProjectError(
+          error.response?.data?.message ||
+            "Failed to load projects."
+        );
+      } finally {
+        setProjectsLoading(false);
+      }
+    };
+
     fetchDashboard();
+    fetchProjects();
   }, [navigate]);
 
   const handleLogout = () => {
@@ -83,6 +128,34 @@ function Dashboard() {
     localStorage.removeItem("user");
 
     navigate("/login");
+  };
+
+  const getStatusClasses = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "active":
+        return "bg-sky-100 text-sky-600";
+
+      case "completed":
+        return "bg-green-100 text-green-600";
+
+      case "archived":
+        return "bg-slate-100 text-slate-500";
+
+      default:
+        return "bg-slate-100 text-slate-600";
+    }
+  };
+
+  const formatDate = (date: string) => {
+    if (!date) {
+      return "";
+    }
+
+    return new Date(date).toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
   };
 
   if (loading) {
@@ -170,7 +243,7 @@ function Dashboard() {
 
         </div>
 
-        {/* Error */}
+        {/* Dashboard Error */}
         {error && (
           <div className="mb-6 rounded-2xl bg-red-50 px-5 py-4 text-sm font-semibold text-red-600">
             {error}
@@ -237,7 +310,7 @@ function Dashboard() {
 
         </div>
 
-        {/* Projects Section */}
+        {/* Projects */}
         <div className="mt-8 rounded-3xl bg-white p-8 shadow-sm">
 
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -252,18 +325,35 @@ function Dashboard() {
               </p>
             </div>
 
-            {/* New Project */}
             <button
               onClick={() => navigate("/projects/new")}
-              className="rounded-xl bg-sky-500 px-5 py-3 font-bold text-white shadow-lg shadow-sky-200 transition hover:bg-sky-600 active:scale-[0.98]"
+              className="rounded-xl bg-sky-500 px-5 py-3 font-bold text-white shadow-lg shadow-sky-200 transition hover:bg-sky-600"
             >
               + New Project
             </button>
 
           </div>
 
+          {/* Project Error */}
+          {projectError && (
+            <div className="mt-6 rounded-2xl bg-red-50 px-5 py-4 text-sm font-semibold text-red-600">
+              {projectError}
+            </div>
+          )}
+
+          {/* Loading */}
+          {projectsLoading && (
+            <div className="mt-10 text-center">
+              <div className="text-5xl">🐧</div>
+
+              <p className="mt-3 text-sm font-semibold text-slate-500">
+                Pengu is fetching your projects...
+              </p>
+            </div>
+          )}
+
           {/* Empty State */}
-          {dashboard?.total_projects === 0 && (
+          {!projectsLoading && projects.length === 0 && !projectError && (
             <div className="mt-10 rounded-2xl border-2 border-dashed border-sky-100 bg-sky-50/50 p-12 text-center">
 
               <div className="text-6xl">
@@ -281,7 +371,7 @@ function Dashboard() {
 
               <button
                 onClick={() => navigate("/projects/new")}
-                className="mt-6 rounded-xl bg-sky-500 px-6 py-3 font-bold text-white shadow-lg shadow-sky-200 transition hover:bg-sky-600 active:scale-[0.98]"
+                className="mt-6 rounded-xl bg-sky-500 px-6 py-3 font-bold text-white transition hover:bg-sky-600"
               >
                 Create your first project 🐧
               </button>
@@ -289,28 +379,55 @@ function Dashboard() {
             </div>
           )}
 
-          {/* Projects exist */}
-          {dashboard && dashboard.total_projects > 0 && (
-            <div className="mt-8 rounded-2xl bg-sky-50 p-6">
+          {/* Project Cards */}
+          {!projectsLoading && projects.length > 0 && (
+            <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
 
-              <div className="flex items-center gap-4">
+              {projects.map((project) => (
+                <div
+                  key={project.id}
+                  className="rounded-2xl border border-slate-100 bg-slate-50 p-6 transition hover:-translate-y-1 hover:shadow-lg"
+                >
 
-                <div className="text-5xl">
-                  📁
-                </div>
+                  <div className="flex items-start justify-between gap-4">
 
-                <div>
-                  <h4 className="text-lg font-bold text-slate-700">
-                    You have {dashboard.total_projects} project
-                    {dashboard.total_projects !== 1 ? "s" : ""}
-                  </h4>
+                    <h4 className="text-lg font-bold text-slate-800">
+                      {project.title}
+                    </h4>
 
-                  <p className="mt-1 text-sm text-slate-500">
-                    Your projects will appear here.
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-bold capitalize ${getStatusClasses(
+                        project.status
+                      )}`}
+                    >
+                      {project.status}
+                    </span>
+
+                  </div>
+
+                  <p className="mt-4 min-h-[48px] text-sm leading-6 text-slate-500">
+                    {project.description || "No description provided."}
                   </p>
-                </div>
 
-              </div>
+                  <div className="mt-6 flex items-center justify-between border-t border-slate-200 pt-4">
+
+                    <span className="text-xs font-medium text-slate-400">
+                      Created {formatDate(project.created_at)}
+                    </span>
+
+                    <button
+                      onClick={() =>
+                        navigate(`/projects/${project.id}`)
+                      }
+                      className="text-sm font-bold text-sky-500 hover:text-sky-600"
+                    >
+                      View →
+                    </button>
+
+                  </div>
+
+                </div>
+              ))}
 
             </div>
           )}
