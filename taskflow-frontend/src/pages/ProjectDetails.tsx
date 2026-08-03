@@ -12,19 +12,41 @@ interface Project {
   updated_at: string;
 }
 
+interface Task {
+  id: number;
+  project_id: number;
+  title: string;
+  description: string;
+  status: string;
+  due_date: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 function ProjectDetails() {
   const navigate = useNavigate();
   const { id } = useParams();
 
   const [project, setProject] = useState<Project | null>(null);
+  const [tasks, setTasks] = useState<Task[]>([]);
+
   const [loading, setLoading] = useState(true);
+  const [tasksLoading, setTasksLoading] = useState(true);
+
   const [error, setError] = useState("");
+  const [taskError, setTaskError] = useState("");
 
   useEffect(() => {
     const token = localStorage.getItem("token");
 
     if (!token) {
       navigate("/login");
+      return;
+    }
+
+    if (!id) {
+      setError("Invalid project ID.");
+      setLoading(false);
       return;
     }
 
@@ -58,7 +80,41 @@ function ProjectDetails() {
       }
     };
 
+    const fetchTasks = async () => {
+      try {
+        const response = await api.get(
+          `/projects/${id}/tasks`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        console.log("Tasks response:", response.data);
+
+        setTasks(response.data.data || []);
+      } catch (error: any) {
+        console.error("Tasks error:", error);
+
+        if (error.response?.status === 401) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          navigate("/login");
+          return;
+        }
+
+        setTaskError(
+          error.response?.data?.message ||
+            "Failed to load tasks."
+        );
+      } finally {
+        setTasksLoading(false);
+      }
+    };
+
     fetchProject();
+    fetchTasks();
   }, [id, navigate]);
 
   const getStatusClasses = (status: string) => {
@@ -77,8 +133,10 @@ function ProjectDetails() {
     }
   };
 
-  const formatDate = (date: string) => {
-    if (!date) return "";
+  const formatDate = (date: string | null) => {
+    if (!date) {
+      return "No due date";
+    }
 
     return new Date(date).toLocaleDateString("en-IN", {
       day: "numeric",
@@ -171,7 +229,7 @@ function ProjectDetails() {
       </header>
 
       {/* Main */}
-      <main className="mx-auto max-w-5xl px-6 py-10">
+      <main className="mx-auto max-w-6xl px-6 py-10">
 
         {/* Back */}
         <button
@@ -260,28 +318,161 @@ function ProjectDetails() {
 
           </div>
 
-          {/* Actions */}
-          <div className="mt-8 flex flex-col gap-3 border-t border-slate-100 pt-8 sm:flex-row">
+        </div>
+
+        {/* Tasks Section */}
+        <div className="mt-8 rounded-3xl bg-white p-8 shadow-xl">
+
+          {/* Tasks Header */}
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
+            <div>
+
+              <p className="text-sm font-bold uppercase tracking-widest text-sky-500">
+                Project Tasks
+              </p>
+
+              <h3 className="mt-1 text-2xl font-extrabold text-slate-800">
+                Tasks
+              </h3>
+
+              <p className="mt-1 text-sm text-slate-500">
+                Manage all tasks belonging to this project.
+              </p>
+
+            </div>
 
             <button
               onClick={() =>
-                navigate(`/projects/${project.id}/edit`)
+                navigate(`/projects/${project.id}/tasks/new`)
               }
-              className="rounded-xl border border-slate-200 bg-white px-6 py-3 font-bold text-slate-600 transition hover:bg-slate-50"
+              className="rounded-xl bg-sky-500 px-5 py-3 font-bold text-white shadow-lg shadow-sky-200 transition hover:bg-sky-600"
             >
-              ✏️ Edit Project
-            </button>
-
-            <button
-              onClick={() => {
-                console.log("Tasks will be added next");
-              }}
-              className="rounded-xl bg-sky-500 px-6 py-3 font-bold text-white shadow-lg shadow-sky-200 transition hover:bg-sky-600"
-            >
-              📋 View Tasks
+              + New Task
             </button>
 
           </div>
+
+          {/* Task Error */}
+          {taskError && (
+            <div className="mt-6 rounded-2xl bg-red-50 px-5 py-4 text-sm font-semibold text-red-600">
+              {taskError}
+            </div>
+          )}
+
+          {/* Task Loading */}
+          {tasksLoading && (
+            <div className="mt-10 text-center">
+
+              <div className="text-5xl">
+                🐧
+              </div>
+
+              <p className="mt-3 text-sm font-semibold text-slate-500">
+                Pengu is fetching your tasks...
+              </p>
+
+            </div>
+          )}
+
+          {/* Empty Tasks */}
+          {!tasksLoading &&
+            tasks.length === 0 &&
+            !taskError && (
+              <div className="mt-10 rounded-2xl border-2 border-dashed border-sky-100 bg-sky-50/50 p-12 text-center">
+
+                <div className="text-6xl">
+                  📋
+                </div>
+
+                <h4 className="mt-4 text-xl font-bold text-slate-700">
+                  No tasks yet
+                </h4>
+
+                <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
+                  Create your first task and start getting
+                  things done.
+                </p>
+
+                <button
+                  onClick={() =>
+                    navigate(
+                      `/projects/${project.id}/tasks/new`
+                    )
+                  }
+                  className="mt-6 rounded-xl bg-sky-500 px-6 py-3 font-bold text-white transition hover:bg-sky-600"
+                >
+                  Create First Task 🐧
+                </button>
+
+              </div>
+            )}
+
+          {/* Tasks */}
+          {!tasksLoading && tasks.length > 0 && (
+            <div className="mt-8 space-y-4">
+
+              {tasks.map((task) => (
+                <div
+                  key={task.id}
+                  className="rounded-2xl border border-slate-100 bg-slate-50 p-5 transition hover:shadow-md"
+                >
+
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+
+                    <div className="min-w-0">
+
+                      <h4 className="text-lg font-bold text-slate-800">
+                        {task.title}
+                      </h4>
+
+                      <p className="mt-2 text-sm leading-6 text-slate-500">
+                        {task.description ||
+                          "No description provided."}
+                      </p>
+
+                    </div>
+
+                    <span
+                      className={`w-fit shrink-0 rounded-full px-3 py-1 text-xs font-bold capitalize ${getStatusClasses(
+                        task.status
+                      )}`}
+                    >
+                      {task.status}
+                    </span>
+
+                  </div>
+
+                  <div className="mt-5 flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
+
+                    <div className="flex flex-wrap gap-4 text-xs font-medium text-slate-400">
+
+                      <span>
+                        📅 Due: {formatDate(task.due_date)}
+                      </span>
+
+                      <span>
+                        Created: {formatDate(task.created_at)}
+                      </span>
+
+                    </div>
+
+                    <button
+                      onClick={() =>
+                        navigate(`/tasks/${task.id}`)
+                      }
+                      className="w-fit text-sm font-bold text-sky-500 hover:text-sky-600"
+                    >
+                      View Task →
+                    </button>
+
+                  </div>
+
+                </div>
+              ))}
+
+            </div>
+          )}
 
         </div>
 
