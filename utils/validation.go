@@ -95,5 +95,11 @@ func ValidateTask(task models.TaskRequest) error {
 		return errors.New("Invalid status")
 	}
 
+	if task.Priority != "low" &&
+		task.Priority != "medium" &&
+		task.Priority != "high" {
+		return errors.New("Invalid priority")
+	}
+
 	return nil
 }

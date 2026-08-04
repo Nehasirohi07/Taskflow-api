@@ -41,6 +41,8 @@ func SanitizeTask(task models.TaskRequest) models.TaskRequest {
 	task.Description = strings.TrimSpace(task.Description)
 	task.Status = strings.TrimSpace(task.Status)
 	task.Status = strings.ToLower(task.Status)
+	task.Priority = strings.TrimSpace(task.Priority)
+	task.Priority = strings.ToLower(task.Priority)
 
 	return task
 }

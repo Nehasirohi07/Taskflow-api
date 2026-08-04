@@ -7,6 +7,7 @@ type Task struct {
 	ProjectID   int        `json:"project_id"`
 	Title       string     `json:"title"`
 	Description string     `json:"description"`
+	Priority    string     `json:"priority"`
 	Status      string     `json:"status"`
 	DueDate     *time.Time `json:"due_date"`
 	CreatedAt   time.Time  `json:"created_at"`
@@ -17,6 +18,7 @@ type TaskRequest struct {
 	ProjectID   int    `json:"project_id"`
 	Title       string `json:"title"`
 	Description string `json:"description"`
+	Priority    string `json:"priority"`
 	Status      string `json:"status"`
 	DueDate     string `json:"due_date"`
 }
@@ -26,6 +28,7 @@ type TaskResponse struct {
 	ProjectID   int        `json:"project_id"`
 	Title       string     `json:"title"`
 	Description string     `json:"description"`
+	Priority    string     `json:"priority"`
 	Status      string     `json:"status"`
 	DueDate     *time.Time `json:"due_date"`
 	CreatedAt   time.Time  `json:"created_at"`
